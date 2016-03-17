@@ -5,15 +5,9 @@
 package termproject;
 
 import lejos.hardware.motor.EV3LargeRegulatedMotor;
-import lejos.hardware.port.MotorPort;
+import lejos.utility.TimerListener;
 
-public class Odometer extends Thread {
-	
-	//Class Constants
-	public static final int SINTERVAL=50;	// Period of sampling f (mSec)
-	public static final int SLEEPINT=500;	// Period of display update (mSec)
-	public static final double WB=16.0;		// Wheelbase (cm)
-	public static final double WR=2.7;		// Wheel radius (cm)
+public class Odometer implements TimerListener {
 
 	//Class Variables
 	public static int lastTachoL;			// Tacho L at last sample
@@ -23,24 +17,22 @@ public class Odometer extends Thread {
 	public static double distL, distR, deltaD, deltaT, dX, dY;
 	
 	//robot position
-	public static double X;					// Current X position
-	public static double Y;					// Current Y position
-	public static double Theta;				// Current orientation
+	public double X;					/** Current X position, in cm */
+	public double Y;					/** Current Y position, in cm */
+	public double Theta;				/** Current orientation, in radians */
 	
 	//resources
-	private static EV3LargeRegulatedMotor rightMotor;
-	private static EV3LargeRegulatedMotor leftMotor;
-	
-//	// robot position
-//	private double x, y, theta;
-
-	// odometer update period, in ms
-	private static final long ODOMETER_PERIOD = 25;
+	private EV3LargeRegulatedMotor rightMotor;
+	private EV3LargeRegulatedMotor leftMotor;
 
 	// lock object for mutual exclusion
 	private Object lock;
 
-	// default constructor
+	/**
+	 * Constructs an Odometer instance with a reference to a leftMotor and a rightMotor
+	 * @param leftMotor The motor controlling the robot's left wheel
+	 * @param rightMotor The motor controlling the robot's right wheel
+	 */
 	public Odometer(EV3LargeRegulatedMotor leftMotor, EV3LargeRegulatedMotor rightMotor) {
 		X = 0.0;
 		Y = 0.0;
@@ -56,47 +48,34 @@ public class Odometer extends Thread {
 	    lastTachoR=rightMotor.getTachoCount();
 	}
 
-	// run method (required for Thread)
-	public void run() {
-		long updateStart, updateEnd;
+	@Override
+	public void timedOut() {
+		nowTachoL = leftMotor.getTachoCount();      		// get tacho counts
+		nowTachoR = rightMotor.getTachoCount();
+		distL = 3.14159*Constants.WR*(nowTachoL-lastTachoL)/180;		// compute L and R wheel displacements
+		distR = 3.14159*Constants.WR*(nowTachoR-lastTachoR)/180;
+		lastTachoL=nowTachoL;								// save tacho counts for next iteration
+		lastTachoR=nowTachoR;
+		deltaD = 0.5*(distL+distR);							// compute vehicle displacement
+		deltaT = (distL-distR)/Constants.WB;							// compute change in heading
 
-		while (true) {
-			updateStart = System.currentTimeMillis();
-			nowTachoL = leftMotor.getTachoCount();      		// get tacho counts
-			nowTachoR = rightMotor.getTachoCount();
-			distL = 3.14159*WR*(nowTachoL-lastTachoL)/180;		// compute L and R wheel displacements
-			distR = 3.14159*WR*(nowTachoR-lastTachoR)/180;
-			lastTachoL=nowTachoL;								// save tacho counts for next iteration
-			lastTachoR=nowTachoR;
-			deltaD = 0.5*(distL+distR);							// compute vehicle displacement
-			deltaT = (distL-distR)/WB;							// compute change in heading
-
-			synchronized (lock) {
-				// don't use the variables x, y, or theta anywhere but here!
-				Theta = -0.7376;
-				
-				Theta += deltaT;									// update heading
-			    dX = deltaD * Math.sin(Theta);						// compute X component of displacement
-				dY = deltaD * Math.cos(Theta);						// compute Y component of displacement
-				X = X + dX;											// update estimates of X and Y position
-				Y = Y + dY;	
-			}
-
-			// this ensures that the odometer only runs once every period
-			updateEnd = System.currentTimeMillis();
-			if (updateEnd - updateStart < ODOMETER_PERIOD) {
-				try {
-					Thread.sleep(ODOMETER_PERIOD - (updateEnd - updateStart));
-				} catch (InterruptedException e) {
-					// there is nothing to be done here because it is not
-					// expected that the odometer will be interrupted by
-					// another thread
-				}
-			}
+		synchronized (lock) {
+			// don't use the variables x, y, or theta anywhere but here!
+			Theta += deltaT;									// update heading
+		    dX = deltaD * Math.sin(Theta);						// compute X component of displacement
+			dY = deltaD * Math.cos(Theta);						// compute Y component of displacement
+			X = X + dX;											// update estimates of X and Y position
+			Y = Y + dY;	
 		}
 	}
 
-	// accessors
+	//Getters
+	/**
+	 * Changes 0th,1st,2nd values of position[] to X,Y,Theta, respectively, if 0th,1st,2nd values of
+	 * update[] are true, respectively 
+	 * @param position
+	 * @param update
+	 */
 	public void getPosition(double[] position, boolean[] update) {
 		// ensure that the values don't change while the odometer is running
 		synchronized (lock) {
@@ -108,7 +87,11 @@ public class Odometer extends Thread {
 				position[2] = Theta;
 		}
 	}
-
+	
+	/**
+	 * getter for X coordinate of robot
+	 * @return the most recent X coordinate of robot's position calculated by Odometer, im cm
+	 */
 	public double getX() {
 		double result;
 
@@ -119,6 +102,10 @@ public class Odometer extends Thread {
 		return result;
 	}
 
+	/**
+	 * getter for Y coordinate of robot
+	 * @return the most recent Y coordinate of robot's position calculated by Odometer, in cm
+	 */
 	public double getY() {
 		double result;
 
@@ -129,7 +116,11 @@ public class Odometer extends Thread {
 		return result;
 	}
 
-	public double getTheta() {
+	/**
+	 * getter for Theta coordinate of robot
+	 * @return the most recent Theta coordinate of robot's position calculated by Odometer, in radians
+	 */
+	public double getThetaRad() {
 		double result;
 
 		synchronized (lock) {
@@ -138,8 +129,28 @@ public class Odometer extends Thread {
 
 		return result;
 	}
+	/**
+	 * getter for Theta coordinate of robot
+	 * @return the most recent Theta coordinate of robot's position calculated by Odometer, in degrees
+	 */
+	public double getThetaDeg() {
+		double result;
 
-	// mutators
+		synchronized (lock) {
+			result = Math.toDegrees(Theta);
+		}
+
+		return result;
+	}
+
+	//Setters
+	
+	/**
+	 * Sets X,Y,Theta to 0th,1st,2nd values of position[], respectively, if 0th,1st,2nd values
+	 * of update[] are true, respectively.
+	 * @param position the array to copy to X,Y,Theta
+	 * @param update the array to allow the copying of position[] into X,Y,Theta
+	 */
 	public void setPosition(double[] position, boolean[] update) {
 		// ensure that the values don't change while the odometer is running
 		synchronized (lock) {
@@ -152,21 +163,40 @@ public class Odometer extends Thread {
 		}
 	}
 
+	/**
+	 * Sets the X value of the Odometer to x
+	 * @param x the value to set Odometer.X to, in cm
+	 */
 	public void setX(double x) {
 		synchronized (lock) {
 			this.X = x;
 		}
 	}
 
+	/**
+	 * Sets the Y value of the Odometer to y
+	 * @param Y the value to set Odometer.Y to, in cm
+	 */
 	public void setY(double y) {
 		synchronized (lock) {
 			this.Y = y;
 		}
 	}
 
-	public void setTheta(double theta) {
+	/**
+	 * Sets the Theta value of the Odometer to theta
+	 * @param theta the value to set Odometer.Theta to, in radians
+	 */
+	public void setThetaRad(double theta) {
 		synchronized (lock) {
 			this.Theta = theta;
 		}
+	}
+	/**
+	 * Sets the Theta value of the Odometer to theta
+	 * @param theta the value to set the Odometer.Theta to, in degrees
+	 */
+	public void setThetaDeg(double theta) {
+		setThetaRad(Math.toRadians(theta));
 	}
 }
