@@ -3,8 +3,8 @@ package termproject;
 import lejos.hardware.motor.EV3LargeRegulatedMotor;
 
 /**
- * this class contains all the high-level methods for controlling the motion of
- * the robot on the playing field
+ * This class contains all the high-level methods for controlling the motion of
+ * the robot on the playing field. Positive angle is counter-clockwise, positive distance is forward.
  * @author Stuart Mashaal and Mathieu Savoie
  *
  */
@@ -41,29 +41,69 @@ public class Navigator {
 	 * @param theta the angle, in radians, to rotate the robot by
 	 */
 	public void rotateByRad(double theta) {
-		//TODO
+		rotateByDeg(Math.toDegrees(theta));
 	}
 	/**
 	 * rotate the robot by a certain angle, in degrees
 	 * @param theta the angle, in degrees, to rotate the robot by
 	 */
 	public void rotateByDeg(double theta) {
-		rotateByRad(Math.toRadians(theta));
+		setMotorSpeeds(Constants.ROTATESPEED);
+		int wheelAngle = (int)(theta * Constants.WB * 0.5 / Constants.WR);
+		leftMotor.rotate(wheelAngle, true);
+		rightMotor.rotate(wheelAngle, false);
 	}
 	/**
 	 * rotate the robot to a certain heading specified in radians
 	 * @param theta the heading, in radians, to rotate to
 	 */
 	public void rotateToRad(double theta) {
-		rotateByRad(theta - odo.getThetaRad());
+		rotateToDeg(Math.toDegrees(theta));
 	}
 	/**
 	 * rotate the robot to a certain heading specified in degrees
 	 * @param theta the heading, in degrees, to rotate to
 	 */
 	public void rotateToDeg(double theta) {
-		rotateToRad(Math.toRadians(theta));
+		//TODO: make sure this works, doing the subtraction and then taking mod 360
+		theta -= odo.getThetaDeg();
+		theta %= 360; 
+		//theta is now the angle to rotate by, in range [-360,360]
+		
+		if (theta < -180) {
+			theta += 360;
+		} else if (theta > 180) {
+			theta -= 360;
+		}
+		//theta is now the angle to rotate by, in range [-180,180]
+		
+		rotateByDeg(theta);
 	}
 	
+	/**
+	 * move the robot forward the desired number of cm
+	 * @param dist the distance, in cm, to move the robot forward by
+	 */
+	public void forwardBy(double dist) {
+		int wheelAngle = (int)(Math.toDegrees(dist / Constants.WR));
+		leftMotor.rotate(wheelAngle);
+		rightMotor.rotate(wheelAngle);
+	}
+	/**
+	 * move the robot backward the desired number of cm
+	 * @param dist the distance, in cm, to move the robot backward by
+	 */
+	public void backwardBy(double dist) {
+		forwardBy(-dist);
+	}
+	
+	/**
+	 * Sets the speed of the motors
+	 * @param speed The speed, in degrees per second, to set the motor speed to
+	 */
+	public void setMotorSpeeds(int speed) {
+		leftMotor.setSpeed(speed);
+		rightMotor.setSpeed(speed);
+	}
 	
 }

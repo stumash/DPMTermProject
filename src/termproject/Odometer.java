@@ -73,8 +73,8 @@ public class Odometer implements TimerListener {
 	/**
 	 * Changes 0th,1st,2nd values of position[] to X,Y,Theta, respectively, if 0th,1st,2nd values of
 	 * update[] are true, respectively 
-	 * @param position
-	 * @param update
+	 * @param position the array to copy X,Y,Theta into. Theta in radians.
+	 * @param update the array to allow the copying of X,Y,Theta into position[].
 	 */
 	public void getPosition(double[] position, boolean[] update) {
 		// ensure that the values don't change while the odometer is running
@@ -148,7 +148,7 @@ public class Odometer implements TimerListener {
 	/**
 	 * Sets X,Y,Theta to 0th,1st,2nd values of position[], respectively, if 0th,1st,2nd values
 	 * of update[] are true, respectively.
-	 * @param position the array to copy to X,Y,Theta
+	 * @param position the array to copy to X,Y,Theta. Values for Theta should be in radians.
 	 * @param update the array to allow the copying of position[] into X,Y,Theta
 	 */
 	public void setPosition(double[] position, boolean[] update) {
