@@ -106,4 +106,5 @@ public class Navigator {
 		rightMotor.setSpeed(speed);
 	}
 	
+	
 }

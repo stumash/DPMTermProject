@@ -10,16 +10,16 @@ import lejos.utility.TimerListener;
 public class Odometer implements TimerListener {
 
 	//Class Variables
-	public static int lastTachoL;			// Tacho L at last sample
-	public static int lastTachoR;			// Tacho R at last sample 
-	public static int nowTachoL;			// Current tacho L
-	public static int nowTachoR;			// Current tacho R
-	public static double distL, distR, deltaD, deltaT, dX, dY;
+	private int lastTachoL;			// Tacho L at last sample
+	private int lastTachoR;			// Tacho R at last sample 
+	private int nowTachoL;			// Current tacho L
+	private int nowTachoR;			// Current tacho R
+	private double distL, distR, deltaD, deltaT, dX, dY;
 	
 	//robot position
-	public double X;					/** Current X position, in cm */
-	public double Y;					/** Current Y position, in cm */
-	public double Theta;				/** Current orientation, in radians */
+	private double X;					/** Current X position, in cm */
+	private double Y;					/** Current Y position, in cm */
+	private double Theta;				/** Current orientation, in radians */
 	
 	//resources
 	private EV3LargeRegulatedMotor rightMotor;
@@ -71,20 +71,15 @@ public class Odometer implements TimerListener {
 
 	//Getters
 	/**
-	 * Changes 0th,1st,2nd values of position[] to X,Y,Theta, respectively, if 0th,1st,2nd values of
-	 * update[] are true, respectively 
+	 * Changes 0th,1st,2nd values of position[] to X,Y,Theta, respectively
 	 * @param position the array to copy X,Y,Theta into. Theta in radians.
-	 * @param update the array to allow the copying of X,Y,Theta into position[].
 	 */
-	public void getPosition(double[] position, boolean[] update) {
+	public void getPosition(double[] position) {
 		// ensure that the values don't change while the odometer is running
 		synchronized (lock) {
-			if (update[0])
-				position[0] = X;
-			if (update[1])
-				position[1] = Y;
-			if (update[2])
-				position[2] = Theta;
+			position[0] = X;
+			position[1] = Y;
+			position[2] = Theta;
 		}
 	}
 	
@@ -146,20 +141,15 @@ public class Odometer implements TimerListener {
 	//Setters
 	
 	/**
-	 * Sets X,Y,Theta to 0th,1st,2nd values of position[], respectively, if 0th,1st,2nd values
-	 * of update[] are true, respectively.
+	 * Sets X,Y,Theta to 0th,1st,2nd values of position[], respectively
 	 * @param position the array to copy to X,Y,Theta. Values for Theta should be in radians.
-	 * @param update the array to allow the copying of position[] into X,Y,Theta
 	 */
-	public void setPosition(double[] position, boolean[] update) {
+	public void setPosition(double[] position) {
 		// ensure that the values don't change while the odometer is running
 		synchronized (lock) {
-			if (update[0])
-				X = position[0];
-			if (update[1])
-				Y = position[1];
-			if (update[2])
-				Theta = position[2];
+			X = position[0];
+			Y = position[1];
+			Theta = position[2];
 		}
 	}
 
