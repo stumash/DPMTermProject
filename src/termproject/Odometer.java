@@ -48,7 +48,6 @@ public class Odometer implements TimerListener {
 	    lastTachoR=rightMotor.getTachoCount();
 	}
 
-	@Override
 	public void timedOut() {
 		nowTachoL = leftMotor.getTachoCount();      		// get tacho counts
 		nowTachoR = rightMotor.getTachoCount();

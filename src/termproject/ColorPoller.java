@@ -29,12 +29,12 @@ public class ColorPoller implements TimerListener{
 		samples = new float[sensor.sampleSize()];;
 	}
 	
-	@Override
 	public void timedOut() {
 		synchronized (this) {
 			sp.fetchSample(samples, 0);
 		}
 	}
+	
 	/**
 	 * 
 	 * @return the current color value detected by the color sensor

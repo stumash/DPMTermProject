@@ -9,10 +9,18 @@ import lejos.hardware.motor.EV3LargeRegulatedMotor;
  *
  */
 public class Localizer {
-	EV3LargeRegulatedMotor leftMotor;
-	EV3LargeRegulatedMotor rightMotor;
-	USPoller usp;
-	ColorPoller cp;
+	private Navigator nav;
+	private USPoller usp;
+	private Odometer odo;
+	private double myCornerCoords[] = new double[3];
+
+	public double[] getMyCornerCoords() {
+		return myCornerCoords;
+	}
+
+	public void setMyCornerCoords(double[] xytheta) {
+		this.myCornerCoords = xytheta;
+	}
 
 	/**
 	 * constructs a Localizer instance with referenced to to wheel motors (left and right),
@@ -22,17 +30,42 @@ public class Localizer {
 	 * @param usp the ultrasonic poller for distance-to-wall detection
 	 * @param cp the color poller for line detection
 	 */
-	public Localizer(EV3LargeRegulatedMotor leftMotor, EV3LargeRegulatedMotor rightMotor, USPoller usp, ColorPoller cp) {
-		this.leftMotor = leftMotor;
-		this.rightMotor = rightMotor;
+	public Localizer(Navigator nav, USPoller usp, Odometer odo) {
+		this.nav = nav;
 		this.usp = usp;
-		this.cp = cp;
+		this.odo = odo;
 	}
 	
 	/**
 	 * executes localization routine
 	 */
 	public void localize() {
+		//get yourself to face away from the wall
+		double angleofMindist = odo.getThetaDeg();
+		double mindist = Constants.MAX_US_FILTER;
+		nav.rotateByDeg_imret(360);
+		while(nav.isMoving()) {
+			if (usp.getFilteredUSdistance() < mindist) {
+				mindist = usp.getFilteredUSdistance();
+				angleofMindist = odo.getThetaDeg();
+			}
+		}
+		nav.rotateToDeg(angleofMindist + 180);
+		usp.rotateByDeg(90);
+		if (usp.getFilteredUSdistance() < Constants.MAX_US_FILTER) { //if theres a wall to your right
+			nav.rotateByDeg_imret(-90);
+		}
+		usp.rotateByDeg(-90); //move the US sensor back to straight ahead
 		
+		//now that you're facing away from the wall, do the following to get to the myCornerCoords
+		nav.localizerBackup();
+		nav.forwardBy(Constants.TILE_LENGTH - Constants.WHEELS_TO_BACK);
+		nav.rotateByDeg(90);
+		nav.localizerBackup();
+		nav.forwardBy(Constants.TILE_LENGTH - Constants.WHEELS_TO_BACK);
+		nav.rotateByDeg(-90);
+		
+		//now that you're at the myCornerCoords, update Odometer
+		odo.setPosition(myCornerCoords);
 	}
 }
