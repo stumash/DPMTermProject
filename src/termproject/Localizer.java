@@ -5,22 +5,16 @@ import lejos.hardware.motor.EV3LargeRegulatedMotor;
 /**
  * This class is for getting the robot to figure out where it is.  It
  * has only one method, 'localize'.
- * @author Stuart Mashaal and Mathieu Savoie
+ * @author Stuart Mashaal
  *
  */
 public class Localizer {
 	private Navigator nav;
 	private USPoller usp;
 	private Odometer odo;
+	
+	//to contain the post-localization odometer settings, which differ based on the corner the robot is first set down in
 	private double myCornerCoords[] = new double[3];
-
-	public double[] getMyCornerCoords() {
-		return myCornerCoords;
-	}
-
-	public void setMyCornerCoords(double[] xytheta) {
-		this.myCornerCoords = xytheta;
-	}
 
 	/**
 	 * constructs a Localizer instance with referenced to to wheel motors (left and right),
@@ -53,7 +47,7 @@ public class Localizer {
 		nav.rotateToDeg(angleofMindist + 180);
 		usp.rotateByDeg(90);
 		if (usp.getFilteredUSdistance() < Constants.MAX_US_FILTER) { //if theres a wall to your right
-			nav.rotateByDeg_imret(-90);
+			nav.rotateByDeg(-90);
 		}
 		usp.rotateByDeg(-90); //move the US sensor back to straight ahead
 		
@@ -67,5 +61,17 @@ public class Localizer {
 		
 		//now that you're at the myCornerCoords, update Odometer
 		odo.setPosition(myCornerCoords);
+	}
+	
+	/**
+	 *TODO
+	 * @return
+	 */
+	public double[] getMyCornerCoords() {
+		return myCornerCoords;
+	}
+
+	public void setMyCornerCoords(double[] xytheta) {
+		this.myCornerCoords = xytheta;
 	}
 }

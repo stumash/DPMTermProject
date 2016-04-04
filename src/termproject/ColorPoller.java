@@ -9,7 +9,7 @@ import lejos.robotics.SampleProvider;
 /**
  * a class used to abstract away the details of the color sensor in favor of an API that
  * simplifies the color sensor's usage down to a single getter method: getColor().
- * @author Stuart Mashaal and Mathieu Savoie
+ * @author Stuart Mashaal
  *
  */
 public class ColorPoller implements TimerListener{

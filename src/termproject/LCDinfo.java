@@ -4,6 +4,11 @@ import lejos.hardware.ev3.LocalEV3;
 import lejos.hardware.lcd.TextLCD;
 import lejos.utility.TimerListener;
 
+/**
+ * 
+ * @author Stuart Mashaal
+ *
+ */
 public class LCDinfo implements TimerListener{
 	private Odometer odo;
 	private TextLCD LCD = LocalEV3.get().getTextLCD();;

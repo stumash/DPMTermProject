@@ -2,10 +2,22 @@ package termproject;
 
 /**
  * This class is a container class for all the constant values for this project
- * @author Stuart Mashaal and Mathieu Savoie
+ * @author Stuart Mashaal
  *
  */
 public class Constants {
+	//values given to robot through wifi at beginning of round
+	public static int starting_corner;
+	public static int role;
+	public static int goal_width;
+	public static int defender_line;
+	public static int forward_line;
+	public static int ll_x;
+	public static int ll_y;
+	public static int ur_x;
+	public static int ur_y;
+	
+	
 //ROBOT PHYSICAL DIMENSIONS AND PORTS
 	/**
 	 * The distance between the two wheels of the robot
@@ -15,12 +27,17 @@ public class Constants {
 	/**
 	 * The radius of the robot's wheels
 	 */
-	public static final double WR = 1.9975;
+	public static final double WR = 1.9977;
 	
 	/**
 	 * The distance, in cm, from the back-most point of the robot to the wheels
 	 */
 	public static final double WHEELS_TO_BACK = 17.8;
+	
+	/**
+	 * The distance, in cm, from the sensor to the wheels
+	 */
+	public static final double WHEELS_TO_USSENSOR = 4.0;
 	
 	/**
 	 * The distance, in the x direction, from the center of the wheel base to the line sensor
@@ -92,7 +109,7 @@ public class Constants {
 	/**
 	 * The time in between every recalculation of position and heading by the Odometer, in ms
 	 */
-	public static final int ODOMETER_PERIOD = 25;
+	public static final int ODOMETER_PERIOD = 40;
 	
 	/**
 	 * The time in between every update in the distance measurement recorded by the US sensor, in ms
@@ -107,7 +124,7 @@ public class Constants {
 	/**
 	 * The time in between every update of the info displayed by the LCD screen
 	 */
-	public static final int LCD_PERIOD = 60;
+	public static final int LCD_PERIOD = 100;
 	
 	/**
 	 * The time that the run-loop sleeps between every iteration
@@ -124,6 +141,15 @@ public class Constants {
 	 * The max value to accept from the US poller
 	 * All values greater than this will be set to this
 	 */
-	public static final double MAX_US_FILTER = 60.0;
+	public static final double MAX_US_FILTER = 80.0;
 	
+	/**
+	 * 
+	 */
+	public static final double EMERGENCY_DISTANCE = 20.0;
+	
+	/**
+	 * how reliable, (0 < reiablity < 11.0)/1.0, we expect sensor and other data to be
+	 */
+	public static final double RELIABILITY_FACTOR = 0.97;
 }

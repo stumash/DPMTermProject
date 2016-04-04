@@ -7,17 +7,20 @@ import lejos.utility.Timer;
 
 /**
  * This class contains the main method and all the high-level gameplay logic
- * @author Stuart Mashaal and Mathieu Savoie
+ * @author Stuart Mashaal
  *
  */
 public class Main {
 	//member variables
 	private enum State {INIT, LOCALIZE, GOTOSTART,
-		GETBALL, GOTONET, PREPARESHOT, FIRE, 
+		GOTOBALLS, PICKUPBALL, GOTONET, PREPARESHOT, FIRE, 
 		DEFEND, TRAVELLING, OBSTACLEAVOIDANCE};
-	private static State state = State.LOCALIZE; //the current behavior state
-	private static State prevState; //the previous behavior state
-	boolean moving;
+	private static State currState = State.INIT; //the current behavior state
+	private static State nextState; //the previous behavior state
+	private static double xdest, ydest, xdist, ydist;
+	private static double filteredusD;
+	private static boolean homestretch;
+
 	
 	//resources
 	private static EV3LargeRegulatedMotor leftMotor = new EV3LargeRegulatedMotor(LocalEV3.get().getPort(Constants.LEFT_MOTOR_PORT));
@@ -46,28 +49,49 @@ public class Main {
 		usTimer.start();
 		colorTimer.start();
 		lcdTimer.start();
-		try{ Thread.sleep(1500); }catch(InterruptedException e){e.printStackTrace();} //take a moment for all the timers to start up
 		
+		//take a moment for all the timers to start up
+		try{ Thread.sleep(1500); }
+		catch(InterruptedException e){e.printStackTrace();}
+
 		//the main run-loop
 		runloop:
 		while (true) {
-			switch (state) {
+			
+			//run-loop period implemented
+			try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
+			catch(InterruptedException e){e.printStackTrace();}
+			
+			stateswitch:
+			switch (currState) {
 			case INIT:
-				loc.setMyCornerCoords(new double[] {0,0,0}); //TODO create the value-setting logic for this
-				updateState(State.LOCALIZE);
+				nextState = State.LOCALIZE;
+				
+				//TODO create the value-setting logic for this
+				loc.setMyCornerCoords(new double[] {10 * Constants.TILE_LENGTH,0,0});
+				
+				currState = nextState;
 				break;
 			case LOCALIZE:
+				nextState = State.GOTOSTART;
+				
+				//perform localization
 				loc.localize();
-				updateState(State.GOTOSTART);
+				
+				currState = nextState;
 				break;
 			case GOTOSTART:
-				nav.goTo(Constants.TILE_LENGTH * 2, Constants.TILE_LENGTH * 2);
-				break runloop;
-			case TRAVELLING:
+				nextState = State.GOTOBALLS;
+				
+				xdest = 98234; ydest = 92834; //insert plausible numbers here
+				currState = State.TRAVELLING;
+				
 				break;
 			case DEFEND:
+				break runloop;
+			case GOTOBALLS:
 				break;
-			case GETBALL:
+			case PICKUPBALL:
 				break;
 			case GOTONET:
 				break;
@@ -75,24 +99,173 @@ public class Main {
 				break;	
 			case FIRE:
 				break;
+				
+			/*
+			 * the travelling state encapsulates all of the behaviour of the robot during traveling to 
+			 * given point. the travelling state brings the robot to (xdest, ydest) while getting
+			 * around all obstacles it encounters by using the intermediary state, obstacleavoidance.
+			 */
+			case TRAVELLING:
+				//**take note that the travelling state does not assign a new value to nextState when entered
+				
+				//if you haven't yet completed the travelling in the x direction, 
+				//you're not on the homestretch, which is y direction travelling since that's always after
+				//x direction travelling finishes successfully.
+				if (!homestretch) {
+					
+					//rotate towards xdest and then attempt to go to it
+					nav.rotateToXdest(xdest);
+					nav.forwardBy_imret(Math.abs(odo.getX() - xdest));
+					
+					//handle possibility of encountering obstacle
+					while (nav.isMoving()) {
+						//don't check too often 
+						try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
+						catch(InterruptedException e){e.printStackTrace();}
+						
+						//if you're approaching an obstacle
+						if ((filteredusD = usp.getFilteredUSdistance()) < Constants.EMERGENCY_DISTANCE * Constants.RELIABILITY_FACTOR) { 
+							if (filteredusD < nav.distToWall() * Constants.RELIABILITY_FACTOR) {
+								currState = State.OBSTACLEAVOIDANCE; //go to obstacleavoidance state and stop
+								nav.stop();							 //going towards (xdest,ydest)
+								break stateswitch; 
+							}
+						}
+					}
+				
+					//you travelled the xdistance in one piece. now do the y distance
+					homestretch = true;
+					
+				//if you've finished the xdistance and are on the homestretch
+				} else { 
+				
+					//rotate towards ydest and then attempt to go to it
+					nav.rotateToYdest(ydest);
+					nav.forwardBy_imret(Math.abs(ydest - odo.getY()));
+				
+					//handle the possibility of encountering obstacles
+					while (nav.isMoving()) {
+						//don't check too often 
+						try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
+						catch(InterruptedException e){e.printStackTrace();}
+						
+						//if you're approaching an obstacle
+						if ((filteredusD = usp.getFilteredUSdistance()) < Constants.EMERGENCY_DISTANCE * Constants.RELIABILITY_FACTOR) {
+							if (filteredusD < nav.distToWall() * Constants.RELIABILITY_FACTOR) {
+								currState = State.OBSTACLEAVOIDANCE; //go to obstacleavoidance state and stop
+								nav.stop();							 //going towards (xdest,ydest)
+								break stateswitch; 
+							}
+						}
+					}
+					
+					//you finished travelling. next time you start travelling again you won't be on the homestretch
+					homestretch = false;
+					
+					//you've gotten to where you're going. now, do the next state whatever that is
+					currState = nextState;					
+				}
+				
+				break;
+
+			/*
+			 * the obstacleavoidance state encapsulates all robot's behaviour while it avoids/goes around
+			 * an wooden block obstacle
+			 */
 			case OBSTACLEAVOIDANCE:
+				/* take note that the obstacleavoidance state does not assign a new 
+				 * value to nextState when entered
+				 */
+				
+				if (shouldGoAroundObstacleByTurningRight()) {
+					//rotate to the right, aim sensor to the left and go until the obstacle is no longer to your left
+					nav.rotateByDeg(90);
+					usp.rotateByDeg(-90);
+					nav.goForward_imret();
+					
+					//stop when the obstacle is no longer to your left
+					while (usp.getFilteredUSdistance() < (Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR) * (2 - Constants.RELIABILITY_FACTOR)) {
+						//don't check too often
+						try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
+						catch(InterruptedException e){e.printStackTrace();}			
+					}
+					nav.stop();
+
+					//then go some more so you can clear it when you turn back.  turn back
+					nav.forwardBy(Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR);
+					nav.rotateByDeg(-90);
+					
+					//now again go until you've passed it and then a little extra and then aim your sensor forward again
+					nav.goForward_imret();
+					while (usp.getFilteredUSdistance() > (Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR) * (2 - Constants.RELIABILITY_FACTOR)) {
+						// don't check too often
+						try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
+						catch(InterruptedException e){e.printStackTrace();}	
+					}
+					while (usp.getFilteredUSdistance() < (Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR) * (2 -Constants.RELIABILITY_FACTOR)) {
+						//don't check too often
+						try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
+						catch(InterruptedException e){e.printStackTrace();}	
+					}
+					nav.stop();
+					nav.forwardBy(Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR);
+					usp.rotateByDeg(90);
+					
+				//you should go around the obstacle to the left
+				} else {
+					//rotate to the left, aim sensor to the right and go until the obstacle is no longer to your right
+					nav.rotateByDeg(-90);
+					usp.rotateByDeg(90);
+					nav.goForward_imret();
+					
+					//stop when the obstacle is no longer to your right
+					while (usp.getFilteredUSdistance() < (Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR) * (2 - Constants.RELIABILITY_FACTOR)) {
+						//don't check too often
+						try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
+						catch(InterruptedException e){e.printStackTrace();}		
+					}
+					nav.stop();
+					
+					//then go some more so you can clear it when you turn back. turn back
+					nav.forwardBy(Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR);
+					nav.rotateByDeg(90);
+					
+					//now again go until you've passed it and then a little extra and then aim your sensor forward again
+					nav.goForward_imret();
+					while (usp.getFilteredUSdistance() > (Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR) * (2 - Constants.RELIABILITY_FACTOR)) {
+						try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
+						catch(InterruptedException e){e.printStackTrace();}		
+					}
+					while (usp.getFilteredUSdistance() < (Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR) * (2 -Constants.RELIABILITY_FACTOR)) {
+						//don't check too often
+						try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
+						catch(InterruptedException e){e.printStackTrace();}	
+					}
+					nav.stop();
+					nav.forwardBy(Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR);
+					usp.rotateByDeg(-90);
+					
+					
+				}
+				
+				//now that you avoided the obstacle, complete/restart your travel
+				currState = State.TRAVELLING;
 				break;		
 			}
-			
-			try { //time in between every execution of the run-loop
-				Thread.sleep(Constants.RUNLOOP_PERIOD);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
 		}
-		
-		while (Button.waitForAnyPress() != Button.ID_ESCAPE);
-		System.exit(0);
-	}
-	
-	//sets prevState to state and then sets state to s
-	private static void updateState(State s) {
-		prevState = state;
-		state = s;
+	}	
+
+	/**
+	 * determines if you should go around the obstacle by turning right or left and going by it
+	 * @return true if you'll go to its right
+	 */
+	private static boolean shouldGoAroundObstacleByTurningRight() {
+		//TODO: M0ST IMPORTANT
+		if (!homestretch) {
+
+		} else {
+			
+		}
+		return true;
 	}
 }

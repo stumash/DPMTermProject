@@ -5,7 +5,7 @@ import lejos.hardware.motor.EV3LargeRegulatedMotor;
 /**
  * This class contains all the high-level methods for controlling the motion of
  * the robot on the playing field. Positive angle is counter-clockwise, positive distance is forward.
- * @author Stuart Mashaal and Mathieu Savoie
+ * @author Stuart Mashaal
  *
  */
 public class Navigator {
@@ -25,32 +25,6 @@ public class Navigator {
 		this.leftMotor = leftMotor;
 		this.rightMotor = rightMotor;
 		this.odo = odo;
-	}
-	
-	/**
-	 * the robot will travel to the point (x,y) regardless of current location
-	 * @param x the x coordinate to travel to
-	 * @param y the y coordinate to travel to
-	 */
-	public void goTo(double x, double y) {
-		//travel horizontal distance, then vertical distance
-		double xdist = x - odo.getX();
-		double ydist = y - odo.getY();
-		if (xdist < 0) {
-			rotateToDeg(-90);
-			forwardBy(Math.abs(xdist));
-		} else if (xdist > 0) {
-			rotateToDeg(90);
-			forwardBy(xdist);
-		}
-		if (ydist < 0) {
-			rotateToDeg(180);
-			forwardBy(Math.abs(ydist));
-		} else if (ydist > 0) {
-			rotateToDeg(0);
-			forwardBy(ydist);
-		}
-		
 	}
 
 //rotation methods
@@ -144,20 +118,30 @@ public class Navigator {
 	}
 	
 	/**
-	 * rotate the robot in the clockwise direction until stop() is called
+	 * rotate to right or left if xdest > odo.getX() or xdest < odo.getTheta(), respectively
+	 * @return true if xdest > odo.get() else false
 	 */
-	public void rotateClockwiseContinuous() {
-		setMotorSpeeds(Constants.ROTATE_SPEED);
-		leftMotor.forward();
-		rightMotor.backward();
+	public boolean rotateToXdest(double xdest) {
+		if (odo.getX() >= xdest) { //if you're to the right of xdest
+			rotateToDeg(-90); //rotate to left
+			return true;
+		} else {
+			rotateToDeg(-90); //rotate to right
+			return false;
+		}
 	}
 	/**
-	 * rotate the robot in the counter-clockwise direction until stop() is called
+	 * rotate to 0 or 180 if ydest > odo.getY() or ydest < odo.getY(), respectively
+	 * @return true if ydest > odo.get() else false
 	 */
-	public void rotateCounterclockiseContinuous() {
-		setMotorSpeeds(Constants.ROTATE_SPEED);
-		leftMotor.backward();
-		rightMotor.forward();
+	public boolean rotateToYdest(double ydest) {
+		if (ydest >= odo.getY()) {
+			rotateToDeg(0);
+			return true;
+		} else {
+			rotateToDeg(180);
+			return false;
+		}
 	}
 	
 //forward and backward motion methods
@@ -197,6 +181,21 @@ public class Navigator {
 	public void backwardBy_imret(double dist) {
 		forwardBy_imret(-dist);
 	}
+	/**
+	 * go forward indefinitely. method call returns immediately, allowing
+	 * any code that follows to be executed while robot is going forward
+	 */
+	public void goForward_imret() {
+		//go forward by arbitrarily large distance
+		forwardBy_imret(Constants.TILE_LENGTH * 30);
+	}
+	/**
+	 * go backward indefinitely. method call returns immediately, allowing
+	 * any code that follows to be executed while robot is going backward
+	 */
+	public void goBackward_imret() {
+		backwardBy_imret(Constants.TILE_LENGTH * 30);
+	}
 	
 //miscellaneous helper methods
 	/**
@@ -230,5 +229,24 @@ public class Navigator {
 	 */
 	public boolean isMoving() {
 		return leftMotor.isMoving() || rightMotor.isMoving();
+	}
+	
+	/**
+	 * determines the distance to the wall depending if robot is facing up, down, left or right
+	 * @return the distance in cm to the wall that the robot is facing
+	 */
+	public double distToWall() {
+		double retval;
+		double th = ((odo.getThetaDeg() % 360) + 360) % 360; //th = current heading in range [0, 360]
+		if (th > Math.PI * 7 / 4 || th <= Math.PI / 4 ) { //if facing upwards
+			retval = Constants.TILE_LENGTH * 11 - odo.getY(); //return distance to top wall
+		} else if (th <= Math.PI * 3 / 4) {//if facing to the right
+			retval = Constants.TILE_LENGTH * 11 - odo.getX(); //return distance to right wall
+		} else if (th <= Math.PI * 5 / 4) {//if facing downward
+			retval = Constants.TILE_LENGTH + odo.getY(); //return distance to bottom wall
+		} else {//else facing left
+			retval =  Constants.TILE_LENGTH + odo.getX(); //return distance to left wall
+		}
+		return retval;
 	}
 }

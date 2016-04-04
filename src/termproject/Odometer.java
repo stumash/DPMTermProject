@@ -7,6 +7,11 @@ package termproject;
 import lejos.hardware.motor.EV3LargeRegulatedMotor;
 import lejos.utility.TimerListener;
 
+/**
+ * 
+ * @author Stuart Mashaal
+ *
+ */
 public class Odometer implements TimerListener {
 
 	//Class Variables

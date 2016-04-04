@@ -1,18 +1,8 @@
-Localizer completed: its strategy is that if you back up into a wall and continue backing up, the robot will align
-itself with the wall and thus the robots heading and distance from nearby lines can be known for certain, even hardcoded if need be.
+Obstacle Avoidance: obstacle aboidance is now not a class but a state. also, the preliminary version is now complete.
+the class must be delted and untracked in git.
 
-Navigator updated: duplicate methods were added for every method such that for any method x(params) there is now also 
-a method x_imret(params).  the duplicate method return immediately, aka the robot can execute proceeding code while the motion is
-being performed. These methods are needed for obstacle avoidance so that USPoller can be used for logic during movement.
+ArmManager class still empty
 
-USPoller modified: nullpointer error due to instantiation of SampleProvider object using port member variable that is first assigned value
-in the constructor.  To fix, the SampleProvider instantiation (and all dependent assignments) were moved to the constructor whereas they were 
-previously above it. Also, methods added to rotate the US sensor.
+Odometry Correction class might be created, or maybe light sensor class.... just possibilities.
 
-LCDinfo: this class was new and just added. it displays the current x, y and theta from the odometer to the screen.
-
-Obstacle Avoidance: still empty
-
-ArmManager: still empty
-
-javadocs updated: no explanation necessary
+javadocs updated accordingly

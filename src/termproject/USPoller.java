@@ -8,8 +8,8 @@ import lejos.utility.TimerListener;
 
 /**
  * a class used to abstract away the details of the ultrasonic
- * sensor in favor of an API that simplifies the ultrasonic sensor's usage down to a single getter: getUSDistance.
- * @author Stuart Mashaal and Mathieu Savoie
+ * sensor in favor of an API that simplifies the ultrasonic sensor's usage down to a single getter: getUSdistance(). (and getFilteredUSdistance())
+ * @author Stuart Mashaal
  *
  */
 public class USPoller implements TimerListener{
