@@ -27,7 +27,7 @@ public class Constants {
 	/**
 	 * The radius of the robot's wheels
 	 */
-	public static final double WR = 1.9977;
+	public static final double WR = 1.9980 ;
 	
 	/**
 	 * The distance, in cm, from the back-most point of the robot to the wheels
@@ -37,7 +37,7 @@ public class Constants {
 	/**
 	 * The distance, in cm, from the sensor to the wheels
 	 */
-	public static final double WHEELS_TO_USSENSOR = 4.0;
+	public static final double WHEELS_TO_USSENSOR = 8.0;
 	
 	/**
 	 * The distance, in the x direction, from the center of the wheel base to the line sensor
@@ -136,6 +136,12 @@ public class Constants {
 	 * The side length of one square tile on the "playing field"
 	 */
 	public static final double TILE_LENGTH = 30.485;
+	
+	/**
+	 * The length of one side of the playing field, measured in number of tiles.
+	 * We assume that the playing-field is a square.
+	 */
+	public static final int PF_SIDE_LENGTH = 8; //for "training map" in dpm lab, 8x8 but for actual competition its 12x12
 	
 	/**
 	 * The max value to accept from the US poller

@@ -13,8 +13,9 @@ public class Localizer {
 	private USPoller usp;
 	private Odometer odo;
 	
-	//to contain the post-localization odometer settings, which differ based on the corner the robot is first set down in
-	private double myCornerCoords[] = new double[3];
+	double cornerX;
+	double cornerY;
+	double cornerTheta;
 
 	/**
 	 * constructs a Localizer instance with referenced to to wheel motors (left and right),
@@ -59,19 +60,38 @@ public class Localizer {
 		nav.forwardBy(Constants.TILE_LENGTH - Constants.WHEELS_TO_BACK);
 		nav.rotateByDeg(-90);
 		
-		//now that you're at the myCornerCoords, update Odometer
-		odo.setPosition(myCornerCoords);
+		//now that you're at the myCornerCoords, update Odometer values to myCornerCoords
+		odo.setPosition(new double[]{cornerX,cornerY,cornerTheta});
 	}
 	
 	/**
-	 *TODO
-	 * @return
+	 * tell the robot which corner it is localizing in and what the odometer's values
+	 * should be when the localization is complete
+	 * @param n, the corner number, in set {1,2,3,4}
 	 */
-	public double[] getMyCornerCoords() {
-		return myCornerCoords;
+	public void setCorner(int n) {
+		switch(n) {
+		case 1:
+			setMyCornerCoords(0,0,0);
+			break;
+		case 2:
+			setMyCornerCoords(Constants.TILE_LENGTH * 10, 0, -90);
+			break;
+		case 3:
+			setMyCornerCoords(Constants.TILE_LENGTH * 10, Constants.TILE_LENGTH * 10, 180);
+			break;
+		case 4:
+			setMyCornerCoords(0, Constants.TILE_LENGTH * 10, 90);
+			break;
+		default:
+			//THIS SHOULD NEVER HAPPEN
+			break;
+		}
 	}
-
-	public void setMyCornerCoords(double[] xytheta) {
-		this.myCornerCoords = xytheta;
+	//helper
+	private void setMyCornerCoords(double x, double y, double theta) {
+		this.cornerX = x;
+		this.cornerY = y;
+		this.cornerTheta = theta;
 	}
 }

@@ -126,7 +126,7 @@ public class Navigator {
 			rotateToDeg(-90); //rotate to left
 			return true;
 		} else {
-			rotateToDeg(-90); //rotate to right
+			rotateToDeg(90); //rotate to right
 			return false;
 		}
 	}
@@ -239,9 +239,9 @@ public class Navigator {
 		double retval;
 		double th = ((odo.getThetaDeg() % 360) + 360) % 360; //th = current heading in range [0, 360]
 		if (th > Math.PI * 7 / 4 || th <= Math.PI / 4 ) { //if facing upwards
-			retval = Constants.TILE_LENGTH * 11 - odo.getY(); //return distance to top wall
+			retval = Constants.TILE_LENGTH * (Constants.PF_SIDE_LENGTH - 1) - odo.getY(); //return distance to top wall
 		} else if (th <= Math.PI * 3 / 4) {//if facing to the right
-			retval = Constants.TILE_LENGTH * 11 - odo.getX(); //return distance to right wall
+			retval = Constants.TILE_LENGTH * (Constants.PF_SIDE_LENGTH - 1) - odo.getX(); //return distance to right wall
 		} else if (th <= Math.PI * 5 / 4) {//if facing downward
 			retval = Constants.TILE_LENGTH + odo.getY(); //return distance to bottom wall
 		} else {//else facing left
