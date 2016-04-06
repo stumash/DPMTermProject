@@ -149,10 +149,10 @@ public class Main2 {
 				lightXoffset = Math.cos(lighthalfanglediffone) * Constants.WHEELCENTER_TO_LIGHTSENSOR;
 				lightYoffset = Math.cos(lighthalfangledifftwo) * Constants.WHEELCENTER_TO_LIGHTSENSOR;
 				//calculate the average angle error
-				lightThetaOffsetX = on0to360(lightaverageangleone + Constants.LIGHTSENSOR_ANGLE_OFFSET);
-				lightThetaOffsetY = on0to360(lightaverageangletwo + Constants.LIGHTSENSOR_ANGLE_OFFSET + 90);	
+				lightThetaOffsetX = (lightaverageangleone + Constants.LIGHTSENSOR_ANGLE_OFFSET) % 360;
+				lightThetaOffsetY = (lightaverageangletwo + Constants.LIGHTSENSOR_ANGLE_OFFSET + 90) % 360;	
 				
-				odo.setPosition(new double[] {odo.getX() + lightXoffset, odo.getY() + lightYoffset, odo.getThetaDeg() + 0.5 * (lightThetaOffsetX + lightThetaOffsetY)});
+				odo.setPositionDeg(new double[] {odo.getX() + lightXoffset, odo.getY() + lightYoffset, odo.getThetaDeg() + 0.5 * (lightThetaOffsetX + lightThetaOffsetY)});
 				
 				break runloop;
 				

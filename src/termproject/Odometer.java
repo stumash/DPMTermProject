@@ -162,9 +162,21 @@ public class Odometer implements TimerListener {
 	public void setPosition(double[] position) {
 		// ensure that the values don't change while the odometer is running
 		synchronized (lock) {
-			X = position[0];
-			Y = position[1];
-			Theta = position[2];
+			this.X = position[0];
+			this.Y = position[1];
+			this.Theta = position[2];
+		}
+	}
+	/**
+	 * Sets X,Y,Theta to 0th,1st,2nd values of position[], respectively
+	 * @param position the array to copy to X,Y,Theta. Values for Theta should be in deg.
+	 */
+	public void setPositionDeg(double[] position) {
+		// ensure that the values don't change while the odometer is running
+		synchronized (lock) {
+			this.X = position[0];
+			this.Y = position[1];
+			this.Theta = Math.toRadians(position[2]);
 		}
 	}
 
