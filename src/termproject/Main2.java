@@ -12,30 +12,36 @@ import lejos.utility.Timer;
  *
  */
 public class Main2 {
-	//member variables
-	private enum State {INIT, LOCALIZE, GOTOSTART,
+	//state-related variables
+	private enum State {INIT, USLOCALIZE, LIGHTLOCALIZE, GOTOSTART,
 		GOTOBALLS, PICKUPBALL, GOTONET, PREPARESHOT, FIRE, 
 		DEFEND, TRAVELLING, OBSTACLEAVOIDANCE};
 	private static State currState = State.INIT; //the current behavior state
 	private static State nextState; //the previous behavior state
+	
+	//temp data for all the states
 	private static double xdest, ydest;
 	private static double filteredusD;
+	private static double[] lightlocalangles = new double[4];
+	private static double lightaverageangleone, lightaverageangletwo;
+	private static double lighthalfanglediffone, lighthalfangledifftwo;
+	private static double lightXoffset, lightYoffset, lightThetaOffsetX, lightThetaOffsetY;
 	private static boolean homestretch;
 
-	
 	//resources
 	private static EV3LargeRegulatedMotor leftMotor = new EV3LargeRegulatedMotor(LocalEV3.get().getPort(Constants.LEFT_MOTOR_PORT));
 	private static EV3LargeRegulatedMotor rightMotor = new EV3LargeRegulatedMotor(LocalEV3.get().getPort(Constants.RIGHT_MOTOR_PORT));
 	private static EV3LargeRegulatedMotor sensorMotor = new EV3LargeRegulatedMotor(LocalEV3.get().getPort(Constants.US_MOTOR_PORT));
 	
+	//gameplay object instantiations
 	private static Odometer odo = new Odometer(leftMotor, rightMotor);
 	private static Timer odoTimer = new Timer(Constants.ODOMETER_PERIOD, odo);
 	
 	private static USPoller usp = new USPoller(LocalEV3.get().getPort(Constants.US_PORT), sensorMotor);
 	private static Timer usTimer = new Timer(Constants.US_PERIOD, usp);
 	
-	private static ColorPoller cp = new ColorPoller(LocalEV3.get().getPort(Constants.COLOR_PORT));
-	private static Timer colorTimer = new Timer(Constants.COLOR_PERIOD, cp);
+	private static LightPoller lp = new LightPoller(LocalEV3.get().getPort(Constants.COLOR_PORT));
+	private static Timer lightTimer = new Timer(Constants.COLOR_PERIOD, lp);
 	
 	private static LCDinfo lcd = new LCDinfo(odo);
 	private static Timer lcdTimer = new Timer(Constants.LCD_PERIOD, lcd);
@@ -44,11 +50,13 @@ public class Main2 {
 	
 	private static Localizer loc = new Localizer(nav, usp, odo);
 	
+	
+	//main method
 	public static void main(String[] args) {
 		//start all timers
 		odoTimer.start();
 		usTimer.start();
-		colorTimer.start();
+		lightTimer.start();
 		lcdTimer.start();
 		
 		//take a moment for all the timers to start up
@@ -66,7 +74,7 @@ public class Main2 {
 			stateswitch:
 			switch (currState) {
 			case INIT:
-				nextState = State.LOCALIZE;
+				nextState = State.USLOCALIZE;
 				
 				//TODO create the value-setting logic for this using wifi classes
 				
@@ -74,7 +82,7 @@ public class Main2 {
 				
 				currState = nextState;
 				break;
-			case LOCALIZE:
+			case USLOCALIZE:
 				nextState = State.GOTOSTART;
 				
 				//perform localization
@@ -82,17 +90,82 @@ public class Main2 {
 				
 				currState = nextState;
 				break;
+							
+				
+			/*
+			 * This state is entered perfrom light-localization while away from a corner. The method relies on
+			 * the robot being in a particular zone relative to a known intersection of ground lines on the field. 
+			 */
+			case LIGHTLOCALIZE:
+				
+				//TODO? fix the fact that localization needs me to be facing theta = 0 being below and to the left of the groundline intersection
+				nav.rotateToDeg(0);
+				
+				//begin rotating full circle
+				nav.rotateByDeg_imret(360);			
+				for (int i = 0; i < 4; i++) {
+					
+					//wait to be looking at a line
+					while (lp.getLight() > Constants.COLOR_THRESHOLD) {
+						//don't check too often
+						try { Thread.sleep(Constants.RUNLOOP_PERIOD); }
+						catch (InterruptedException e) { e.printStackTrace(); }
+					}
+					
+					//now that you're looking at a line, record the angle
+					lightlocalangles[i] = odo.getThetaDeg(); 		/*beep for debugging*/ Sound.beep();			
+					//wait to not be looking at a line anymore
+					while (lp.getLight() < Constants.COLOR_THRESHOLD) {
+						//don't check too often
+						try { Thread.sleep(Constants.RUNLOOP_PERIOD); }
+						catch (InterruptedException e) { e.printStackTrace(); }
+					}					
+					//just stopped seeing line, record average of odo.getTheta to get angle at center of ground line
+					lightlocalangles[i] = .5 * (lightlocalangles[i] + odo.getThetaDeg());	/*beep for debugging*/ Sound.beep();				
+					//now do this for all four points
+				}
+				
+				//wait to finish the rotation + data collection
+				while (nav.isMoving()) {
+					//don't check too often
+					try { Thread.sleep(Constants.RUNLOOP_PERIOD); }
+					catch (InterruptedException e) { e.printStackTrace(); }
+				}
+				
+				//TODO? more flexibility in position/orientation of robot when initialization starts
+				//for now, im relying on the fact that the robot is only starting light localization 
+				//when it has odometer x and y values that are just below the x and y of the groundline intersection.
+				//groundline intersections always have coords (Constants.TILE_LENGTH * n, Constants.TILE_LENGTH * n) where n is {0,1,2,3,4,5,6,7,8,9,10}
+				//right now im also assuming that the first line i detect will be the portion of y-parallel line with y < y_ofgroundlineintersection
+				
+				//record (first angle - third angle) and (fourth angle - second angle). convert the diffs to [0,360] 
+				lighthalfanglediffone = 0.5 * toPositiveDeg(lightlocalangles[0] - lightlocalangles[2]); 
+				lighthalfangledifftwo = 0.5 * toPositiveDeg(lightlocalangles[3] - lightlocalangles[1]);
+				
+				//record the average of: first and third angle, second angle and fourth angle 
+				lightaverageangleone = toPositiveDeg(lightlocalangles[2] + lighthalfanglediffone);	//ideally = -Constants.LIGHTSENSOR_ANGLE_OFFSET		
+				lightaverageangletwo = toPositiveDeg(lightlocalangles[1] + lighthalfangledifftwo);	//ideally = -Constants.LIGHTSENSOR_ANGLE_OFFSET - 90
+				
+				lightXoffset = Math.cos(lighthalfanglediffone) * Constants.WHEELCENTER_TO_LIGHTSENSOR;
+				lightYoffset = Math.cos(lighthalfangledifftwo) * Constants.WHEELCENTER_TO_LIGHTSENSOR;
+				//calculate the average angle error
+				lightThetaOffsetX = lightaverageangleone + Constants.LIGHTSENSOR_ANGLE_OFFSET;
+				lightThetaOffsetY = lightaverageangletwo + Constants.LIGHTSENSOR_ANGLE_OFFSET + 90;	
+				
+				odo.setPosition(new double[] {odo.getX() + lightXoffset, odo.getY() + lightYoffset, odo.getThetaDeg() + 0.5 * (lightThetaOffsetX + lightThetaOffsetY)});
+				
+				break runloop;
+				
+			/*
+			 * GO TO THE START LOCATION, WHICH IS IN TWO POSSIBLE LOCATIONS DEPENDING IF FORWARD OR DEFENSE
+			 */
 			case GOTOSTART:
-				nextState = State.GOTOBALLS;
+				nextState = State.LIGHTLOCALIZE;
 				
+				xdest = (Constants.TILE_LENGTH * 5) - (Constants.TILE_LENGTH * 0.125);
+				ydest = (Constants.TILE_LENGTH * 5) - (Constants.TILE_LENGTH * 0.125);
 				
-				
-				xdest = Constants.TILE_LENGTH * 5; ydest = Constants.TILE_LENGTH * 5;
-				
-				
-				
-				currState = State.TRAVELLING;
-				
+				currState = State.TRAVELLING;	
 				break;
 			case DEFEND:
 				break runloop;
@@ -168,11 +241,9 @@ public class Main2 {
 					
 					//you finished travelling. next time you start travelling again you won't be on the homestretch
 					homestretch = false;
-					
 					//you've gotten to where you're going. now, do the next state whatever that is
 					currState = nextState;					
-				}
-				
+				}		
 				break;
 
 			/*
@@ -258,10 +329,13 @@ public class Main2 {
 				//now that you avoided the obstacle, restart your travel to destination point from current location
 				currState = State.TRAVELLING;
 				homestretch = false;
-				break;		
-			}
-		}
-	}	
+				break;						
+			} //end of switchstate
+		} //end of runloop
+		
+		while(Button.waitForAnyPress() != Button.ID_ESCAPE);
+		System.exit(0);
+	} //end of main method
 
 	/**
 	 * determines if you should go around the obstacle by turning right or left and going by it
@@ -284,4 +358,18 @@ public class Main2 {
 			}
 		}
 	}
+	
+	/**
+	 * takes an angle in degrees on [-inf,inf] and returns the same angle in degrees on [0, 360]
+	 * @param deg the angle, in degrees, that you wish to convert to the interval [0,360]
+	 * @returns the angle passed argument converted to the interval [0,360]
+	 */
+	private static double toPositiveDeg(double deg) {
+		double result = deg % 360;
+		if (result < 0) {
+			result += 360;
+		}
+		return result;
+	}
+
 }

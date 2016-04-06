@@ -56,8 +56,8 @@ public class Odometer implements TimerListener {
 	public void timedOut() {
 		nowTachoL = leftMotor.getTachoCount();      		// get tacho counts
 		nowTachoR = rightMotor.getTachoCount();
-		distL = 3.14159*Constants.WR*(nowTachoL-lastTachoL)/180;		// compute L and R wheel displacements
-		distR = 3.14159*Constants.WR*(nowTachoR-lastTachoR)/180;
+		distL = Math.PI*Constants.WR*(nowTachoL-lastTachoL)/180;		// compute L and R wheel displacements
+		distR = Math.PI*Constants.WR*(nowTachoR-lastTachoR)/180;
 		lastTachoL=nowTachoL;								// save tacho counts for next iteration
 		lastTachoR=nowTachoR;
 		deltaD = 0.5*(distL+distR);							// compute vehicle displacement
@@ -139,6 +139,17 @@ public class Odometer implements TimerListener {
 			result = Math.toDegrees(Theta);
 		}
 
+		return result;
+	}
+	/**
+	 * getter for Theta coordinate of robot, but always given in range [0,360]
+	 * @returns the most recent Theta coordinate calculated by the Odometer, in degrees and in range [0,360]
+	 */
+	public double getThetaDeg_positive() {
+		double result = getThetaDeg() % 360;
+		if (result < 0) {
+			result += 360;
+		}
 		return result;
 	}
 

@@ -18,7 +18,7 @@ public class Constants {
 	public static int ur_y;
 	
 	
-//ROBOT PHYSICAL DIMENSIONS AND PORTS
+/////////////////			ROBOT PHYSICAL DIMENSIONS AND PORTS             /////////////////////
 	/**
 	 * The distance between the two wheels of the robot
 	 */
@@ -38,6 +38,16 @@ public class Constants {
 	 * The distance, in cm, from the sensor to the wheels
 	 */
 	public static final double WHEELS_TO_USSENSOR = 8.0;
+	
+	/**
+	 * The distance, in cm, from the point between the robots wheels to the point that the light sensor is at on the ground
+	 */
+	public static final double WHEELCENTER_TO_LIGHTSENSOR = 7.5; //TODO: find actual value
+	
+	/**
+	 * The angle, in degrees, between the angle of the direction perfectly to the right (90) and the angle from wheelcenter to lightsensor
+	 */
+	public static final double LIGHTSENSOR_ANGLE_OFFSET = 10; //TODO: find actual value
 	
 	/**
 	 * The distance, in the x direction, from the center of the wheel base to the line sensor
@@ -74,7 +84,8 @@ public class Constants {
 	 */
 	public static final String US_MOTOR_PORT = "C";
 	
-//MOTOR SPEEDS AND ACCELERATIONS
+	
+/////////////////			MOTOR SPEEDS AND ACCELERATIONS			////////////////////
 	/**
 	 * The speed of the wheel, in degrees per second, when the robot rotates to change heading
 	 */
@@ -105,7 +116,7 @@ public class Constants {
 	 * The speed of the arm motor when acquiring a ball
 	 */
 
-//CODE TIMING
+///////////////							CODE TIMING			////////////////////////////
 	/**
 	 * The time in between every recalculation of position and heading by the Odometer, in ms
 	 */
@@ -131,7 +142,7 @@ public class Constants {
 	 */
 	public static final int RUNLOOP_PERIOD = 30;
 	
-//OTHER
+/////////////////			FIELD DIMENSIONS			/////////////////////
 	/**
 	 * The side length of one square tile on the "playing field"
 	 */
@@ -143,6 +154,8 @@ public class Constants {
 	 */
 	public static final int PF_SIDE_LENGTH = 8; //for "training map" in dpm lab, 8x8 but for actual competition its 12x12
 	
+	
+////////////////			SENSOR-RELATED CONSTANTS			///////////////////
 	/**
 	 * The max value to accept from the US poller
 	 * All values greater than this will be set to this
@@ -150,7 +163,12 @@ public class Constants {
 	public static final double MAX_US_FILTER = 80.0;
 	
 	/**
-	 * 
+	 * The color sensor value below which we consider a black line to have been detected
+	 */
+	public static final double COLOR_THRESHOLD =  45; //TODO find actual value
+	
+	/**
+	 * The US sensor value below which we consider having to use our obstacle avoidance routine
 	 */
 	public static final double EMERGENCY_DISTANCE = 20.0;
 	

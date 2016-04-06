@@ -12,7 +12,7 @@ import lejos.robotics.SampleProvider;
  * @author Stuart Mashaal
  *
  */
-public class ColorPoller implements TimerListener{
+public class LightPoller implements TimerListener{
 	//sensor-related resources
 	Port port;
 	SensorModes sensor;
@@ -22,7 +22,7 @@ public class ColorPoller implements TimerListener{
 	/**
 	 * constructs an instance of ColorPoller
 	 */
-	public ColorPoller(Port p) {
+	public LightPoller(Port p) {
 		this.port = p;
 		sensor = new EV3ColorSensor(port);
 		sp = sensor.getMode("Red");
@@ -39,7 +39,7 @@ public class ColorPoller implements TimerListener{
 	 * 
 	 * @return the current color value detected by the color sensor
 	 */
-	public double getColor() {
+	public double getLight() {
 		synchronized (this) {
 			return samples[0];
 		}
