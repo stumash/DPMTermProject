@@ -139,18 +139,18 @@ public class Main2 {
 				//right now im also assuming that the first line i detect will be the portion of y-parallel line with y < y_ofgroundlineintersection
 				
 				//record (first angle - third angle) and (fourth angle - second angle). convert the diffs to [0,360] 
-				lighthalfanglediffone = 0.5 * toPositiveDeg(lightlocalangles[0] - lightlocalangles[2]); 
-				lighthalfangledifftwo = 0.5 * toPositiveDeg(lightlocalangles[3] - lightlocalangles[1]);
+				lighthalfanglediffone = 0.5 * on0to360(lightlocalangles[0] - lightlocalangles[2]); 
+				lighthalfangledifftwo = 0.5 * on0to360(lightlocalangles[3] - lightlocalangles[1]);
 				
 				//record the average of: first and third angle, second angle and fourth angle 
-				lightaverageangleone = toPositiveDeg(lightlocalangles[2] + lighthalfanglediffone);	//ideally = -Constants.LIGHTSENSOR_ANGLE_OFFSET		
-				lightaverageangletwo = toPositiveDeg(lightlocalangles[1] + lighthalfangledifftwo);	//ideally = -Constants.LIGHTSENSOR_ANGLE_OFFSET - 90
+				lightaverageangleone = on0to360(lightlocalangles[2] + lighthalfanglediffone);	//ideally = -Constants.LIGHTSENSOR_ANGLE_OFFSET		
+				lightaverageangletwo = on0to360(lightlocalangles[1] + lighthalfangledifftwo);	//ideally = -Constants.LIGHTSENSOR_ANGLE_OFFSET - 90
 				
 				lightXoffset = Math.cos(lighthalfanglediffone) * Constants.WHEELCENTER_TO_LIGHTSENSOR;
 				lightYoffset = Math.cos(lighthalfangledifftwo) * Constants.WHEELCENTER_TO_LIGHTSENSOR;
 				//calculate the average angle error
-				lightThetaOffsetX = lightaverageangleone + Constants.LIGHTSENSOR_ANGLE_OFFSET;
-				lightThetaOffsetY = lightaverageangletwo + Constants.LIGHTSENSOR_ANGLE_OFFSET + 90;	
+				lightThetaOffsetX = on0to360(lightaverageangleone + Constants.LIGHTSENSOR_ANGLE_OFFSET);
+				lightThetaOffsetY = on0to360(lightaverageangletwo + Constants.LIGHTSENSOR_ANGLE_OFFSET + 90);	
 				
 				odo.setPosition(new double[] {odo.getX() + lightXoffset, odo.getY() + lightYoffset, odo.getThetaDeg() + 0.5 * (lightThetaOffsetX + lightThetaOffsetY)});
 				
@@ -364,7 +364,7 @@ public class Main2 {
 	 * @param deg the angle, in degrees, that you wish to convert to the interval [0,360]
 	 * @returns the angle passed argument converted to the interval [0,360]
 	 */
-	private static double toPositiveDeg(double deg) {
+	private static double on0to360(double deg) {
 		double result = deg % 360;
 		if (result < 0) {
 			result += 360;
