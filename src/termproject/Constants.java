@@ -22,12 +22,12 @@ public class Constants {
 	/**
 	 * The distance between the two wheels of the robot
 	 */
-	public static final double WB = 16.0;	
+	public static final double WB = 16.55;	
 	
 	/**
 	 * The radius of the robot's wheels
 	 */
-	public static final double WR = 1.9980 ;
+	public static final double WR = 2.035 ;
 	
 	/**
 	 * The distance, in cm, from the back-most point of the robot to the wheels
@@ -42,22 +42,12 @@ public class Constants {
 	/**
 	 * The distance, in cm, from the point between the robots wheels to the point that the light sensor is at on the ground
 	 */
-	public static final double WHEELCENTER_TO_LIGHTSENSOR = 7.5; //TODO: find actual value
+	public static final double WHEELCENTER_TO_LIGHTSENSOR = 12.5;
 	
 	/**
 	 * The angle, in degrees, between the angle of the direction perfectly to the right (90) and the angle from wheelcenter to lightsensor
 	 */
-	public static final double LIGHTSENSOR_ANGLE_OFFSET = 10; //TODO: find actual value
-	
-	/**
-	 * The distance, in the x direction, from the center of the wheel base to the line sensor
-	 */
-	public static final double LINESENSOR_XOFFEST = 4.5;
-	
-	/**
-	 * The distance,  in the y direction, from the center of the wheel base to the line sensor
-	 */
-	public static final double LINESENSOR_YOFFSET = 4.5;
+	public static final double LIGHTSENSOR_ANGLE_OFFSET = 34.0; 
 	
 	/**
 	 * The port identification string for the left wheel motor
@@ -77,7 +67,7 @@ public class Constants {
 	/**
 	 * The port identification string for the Color sensor
 	 */
-	public static final String COLOR_PORT = "S1";
+	public static final String COLOR_PORT = "S2";
 	
 	/**
 	 * The port identification string for the US sensor's motor
@@ -89,13 +79,13 @@ public class Constants {
 	/**
 	 * The speed of the wheel, in degrees per second, when the robot rotates to change heading
 	 */
-	public static final int ROTATE_SPEED = 150;
+	public static final int ROTATE_SPEED = 170;
 	
 	/**
 	 * The speed of the wheels, in degrees per second, when the robot moves along the axis of its current heading
 	 * (forward or backwards)
 	 */
-	public static final int GO_SPEED = 150;
+	public static final int GO_SPEED = 250;
 	
 	/**
 	 * The speed of the wheel, in degrees per second, when the robot backs into the wall during localization
@@ -135,12 +125,13 @@ public class Constants {
 	/**
 	 * The time in between every update of the info displayed by the LCD screen
 	 */
-	public static final int LCD_PERIOD = 100;
+	public static final int LCD_PERIOD = 200;
 	
 	/**
-	 * The time that the run-loop sleeps between every iteration
+	 * The time that the run-loop sleeps between every iteration, in ms
 	 */
 	public static final int RUNLOOP_PERIOD = 30;
+	public static final double RUNLOOP_FREQ = 1000 / RUNLOOP_PERIOD;
 	
 /////////////////			FIELD DIMENSIONS			/////////////////////
 	/**
@@ -165,7 +156,7 @@ public class Constants {
 	/**
 	 * The color sensor value below which we consider a black line to have been detected
 	 */
-	public static final double COLOR_THRESHOLD =  45; //TODO find actual value
+	public static final double LIGHT_THRESHOLD =  45;
 	
 	/**
 	 * The US sensor value below which we consider having to use our obstacle avoidance routine

@@ -1,5 +1,9 @@
 package termproject;
 
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
+import java.io.UnsupportedEncodingException;
+
 import lejos.hardware.Button;
 import lejos.hardware.Sound;
 import lejos.hardware.ev3.LocalEV3;
@@ -50,9 +54,14 @@ public class Main2 {
 	
 	private static Localizer loc = new Localizer(nav, usp, odo);
 	
+	//PrintWriter object for debugging
+	private static PrintWriter writer;
 	
 	//main method
-	public static void main(String[] args) {
+	public static void main(String[] args) throws FileNotFoundException, 
+    UnsupportedEncodingException, InterruptedException{
+		writer = new PrintWriter("lightlocal.txt", "UTF-8");
+		
 		//start all timers
 		odoTimer.start();
 		usTimer.start();
@@ -63,9 +72,17 @@ public class Main2 {
 		try{ Thread.sleep(1500); }
 		catch(InterruptedException e){e.printStackTrace();}
 
+		boolean dotheloop = true;
+		////////////			random tester code here			/////////////////
+//		dotheloop = false;
+//		nav.rotateByDeg(720);
+//		
+//		
+//		
+		
 		//the main run-loop
 		runloop:
-		while (true) {
+		while (dotheloop) {
 			
 			//run-loop period implemented
 			try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
@@ -98,7 +115,7 @@ public class Main2 {
 			 */
 			case LIGHTLOCALIZE:
 				
-				//TODO? fix the fact that localization needs me to be facing theta = 0 being below and to the left of the groundline intersection
+				//face forward
 				nav.rotateToDeg(0);
 				
 				//begin rotating full circle
@@ -106,22 +123,22 @@ public class Main2 {
 				for (int i = 0; i < 4; i++) {
 					
 					//wait to be looking at a line
-					while (lp.getLight() > Constants.COLOR_THRESHOLD) {
+					while (lp.getLight() > Constants.LIGHT_THRESHOLD) {
 						//don't check too often
 						try { Thread.sleep(Constants.RUNLOOP_PERIOD); }
 						catch (InterruptedException e) { e.printStackTrace(); }
 					}
 					
 					//now that you're looking at a line, record the angle
-					lightlocalangles[i] = odo.getThetaDeg(); 		/*beep for debugging*/ Sound.beep();			
+					lightlocalangles[i] = odo.getThetaDeg() 
+							- Constants.ROTATE_SPEED * Constants.RUNLOOP_PERIOD / 1000;//angle travelled while waiting for odo.getTheta()			
 					//wait to not be looking at a line anymore
-					while (lp.getLight() < Constants.COLOR_THRESHOLD) {
+					while (lp.getLight() < Constants.LIGHT_THRESHOLD) {
 						//don't check too often
 						try { Thread.sleep(Constants.RUNLOOP_PERIOD); }
 						catch (InterruptedException e) { e.printStackTrace(); }
 					}					
-					//just stopped seeing line, record average of odo.getTheta to get angle at center of ground line
-					lightlocalangles[i] = .5 * (lightlocalangles[i] + odo.getThetaDeg());	/*beep for debugging*/ Sound.beep();				
+
 					//now do this for all four points
 				}
 				
@@ -132,38 +149,35 @@ public class Main2 {
 					catch (InterruptedException e) { e.printStackTrace(); }
 				}
 				
-				//TODO? more flexibility in position/orientation of robot when initialization starts
-				//for now, im relying on the fact that the robot is only starting light localization 
-				//when it has odometer x and y values that are just below the x and y of the groundline intersection.
-				//groundline intersections always have coords (Constants.TILE_LENGTH * n, Constants.TILE_LENGTH * n) where n is {0,1,2,3,4,5,6,7,8,9,10}
-				//right now im also assuming that the first line i detect will be the portion of y-parallel line with y < y_ofgroundlineintersection
-				
 				//record (first angle - third angle) and (fourth angle - second angle). convert the diffs to [0,360] 
 				lighthalfanglediffone = 0.5 * on0to360(lightlocalangles[0] - lightlocalangles[2]); 
 				lighthalfangledifftwo = 0.5 * on0to360(lightlocalangles[3] - lightlocalangles[1]);
-				
+						
 				//record the average of: first and third angle, second angle and fourth angle 
 				lightaverageangleone = on0to360(lightlocalangles[2] + lighthalfanglediffone);	//ideally = -Constants.LIGHTSENSOR_ANGLE_OFFSET		
 				lightaverageangletwo = on0to360(lightlocalangles[1] + lighthalfangledifftwo);	//ideally = -Constants.LIGHTSENSOR_ANGLE_OFFSET - 90
+								
+				//calculate the error in the x and y direction												
+				lightXoffset = Math.cos(Math.toRadians(lighthalfanglediffone)) * Constants.WHEELCENTER_TO_LIGHTSENSOR; 		
+				lightYoffset = Math.cos(Math.toRadians(lighthalfangledifftwo)) * Constants.WHEELCENTER_TO_LIGHTSENSOR;		
 				
-				lightXoffset = Math.cos(lighthalfanglediffone) * Constants.WHEELCENTER_TO_LIGHTSENSOR;
-				lightYoffset = Math.cos(lighthalfangledifftwo) * Constants.WHEELCENTER_TO_LIGHTSENSOR;
 				//calculate the average angle error
-				lightThetaOffsetX = (lightaverageangleone + Constants.LIGHTSENSOR_ANGLE_OFFSET) % 360;
-				lightThetaOffsetY = (lightaverageangletwo + Constants.LIGHTSENSOR_ANGLE_OFFSET + 90) % 360;	
-				
-				odo.setPositionDeg(new double[] {odo.getX() + lightXoffset, odo.getY() + lightYoffset, odo.getThetaDeg() + 0.5 * (lightThetaOffsetX + lightThetaOffsetY)});
+				lightThetaOffsetX = (-Constants.LIGHTSENSOR_ANGLE_OFFSET - lightaverageangleone) % 360;
+				lightThetaOffsetY = ((-Constants.LIGHTSENSOR_ANGLE_OFFSET - 90) - lightaverageangletwo) % 360;	
+								
+				//update odometer with correction
+				odo.setPositionDeg(new double[] {odo.getX() - lightXoffset, odo.getY() - lightYoffset, odo.getThetaDeg() + 0.5 * (lightThetaOffsetX + lightThetaOffsetY)});
 				
 				break runloop;
 				
 			/*
-			 * GO TO THE START LOCATION, WHICH IS IN TWO POSSIBLE LOCATIONS DEPENDING IF FORWARD OR DEFENSE
+			 * This state is for setting the start coordinates.
 			 */
 			case GOTOSTART:
 				nextState = State.LIGHTLOCALIZE;
 				
-				xdest = (Constants.TILE_LENGTH * 5) - (Constants.TILE_LENGTH * 0.125);
-				ydest = (Constants.TILE_LENGTH * 5) - (Constants.TILE_LENGTH * 0.125);
+				xdest = (Constants.TILE_LENGTH * 2) /*- Constants.TILE_LENGTH * 0.125*/;
+				ydest = (Constants.TILE_LENGTH * 2) /*- Constants.TILE_LENGTH * 0.125*/;
 				
 				currState = State.TRAVELLING;	
 				break;

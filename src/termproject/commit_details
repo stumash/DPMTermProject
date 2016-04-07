@@ -1,8 +1,15 @@
-Obstacle Avoidance: obstacle aboidance is now not a class but a state. also, the preliminary version is now complete.
-the class must be delted and untracked in git.
+Odometry Correction is likely not needed and will not be implemented. The only form of odometry correction that the robot will use
+is to do re-localization using the light localization technique at various groundline intersections as it travels distances too large that
+would usually cause a fatal buildup of cumulative error for the odometer.
+On this note, however, the light localization routine is complete and tested - it is functional. It is implemented in the main class/method as 
+the behaviour state "LIGHT_LOCALIZATION".
 
-ArmManager class still empty
+what's left to do: ball-grabbing strategy is, as of now, totally undetermined - we need one.  Thats the main task left to.
+So far the robot can tell where it is and get around pretty well. with some periodic light-localizations to correct its accumulated odometry error
+over large distance, it can basically get anywhere.  Obstacle avoidance may need some tweaks but basically done. 
 
-Odometry Correction class might be created, or maybe light sensor class.... just possibilities.
+assuming obstacle avoidance and the frequency of light localization are handled soon , the real task ahead is grabbing a ball, if e can do that, this project is 
+actually gonna be a success in time.
 
-javadocs updated accordingly
+so just grabbing a ball for next commit, hopefully.
+

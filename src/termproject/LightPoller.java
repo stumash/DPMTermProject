@@ -41,7 +41,7 @@ public class LightPoller implements TimerListener{
 	 */
 	public double getLight() {
 		synchronized (this) {
-			return samples[0];
+			return samples[0] * 100;
 		}
 	}
 }
