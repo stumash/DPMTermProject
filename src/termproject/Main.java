@@ -15,7 +15,7 @@ import lejos.utility.Timer;
  * @author Stuart Mashaal
  *
  */
-public class Main2 {
+public class Main {
 	//state-related variables
 	private enum State {INIT, USLOCALIZE, LIGHTLOCALIZE, GOTOSTART,
 		GOTOBALLS, PICKUPBALL, GOTONET, PREPARESHOT, FIRE, 
@@ -57,6 +57,8 @@ public class Main2 {
 	private static Localizer loc = new Localizer(nav, usp, odo);
 	
 	private static ArmManager arm = new ArmManager(armMotor);
+	
+	private static ColorPoller cp = new ColorPoller(LocalEV3.get().getPort(Constants.COLOR_PORT));
 	
 	//PrintWriter object for debugging
 	private static PrintWriter writer;
