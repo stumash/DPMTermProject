@@ -211,8 +211,10 @@ public class Navigator {
 	 * Stops both motors
 	 */
 	public void stop() {
-		leftMotor.stop();
-		rightMotor.stop();
+		leftMotor.setSpeed(0);
+		rightMotor.setSpeed(0);
+		leftMotor.forward();
+		rightMotor.forward();
 	}
 	
 	/**

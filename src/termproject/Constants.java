@@ -18,7 +18,7 @@ public class Constants {
 	public static int ur_y;
 	
 	
-/////////////////			ROBOT PHYSICAL DIMENSIONS AND PORTS             /////////////////////
+/////////////////			ROBOT PHYSICAL DIMENSIONS         /////////////////////
 	/**
 	 * The distance between the two wheels of the robot
 	 */
@@ -47,8 +47,32 @@ public class Constants {
 	/**
 	 * The angle, in degrees, between the angle of the direction perfectly to the right (90) and the angle from wheelcenter to lightsensor
 	 */
-	public static final double LIGHTSENSOR_ANGLE_OFFSET = 34.0; 
+	public static final double LIGHTSENSOR_ANGLE_OFFSET = 31.0; 
 	
+	/**
+	 * The angle the arm must rotate from its reset position in order to tap the ball towards the ball holder
+	 */
+	public static final int GETBALL_TAPANGLE = 160;
+	
+	/**
+	 * The angle the arm must rotate (after tapping the ball towards the holder) to push the ball
+	 * all the way into the ball holder
+	 */
+	public static final int GETBALL_HOLDERPUSHANGLE = 50;
+	
+	/**
+	 * The angle the arm must rotate to wind up backwards to be in position to suddenly rotate very fast forward
+	 * to slap the ball into the goal
+	 */
+	public static final int FIRE_WINDUPANLGE = -90;
+	
+	/**
+	 * The angle the arm must rotate forward at high speed to fire the ball at the net
+	 */
+	public static final int FIRE_SLAPSHOTANGLE = 110;
+	
+	
+////////////////////////////// 			ROBOT PORTS				///////////////////////////
 	/**
 	 * The port identification string for the left wheel motor
 	 */
@@ -60,19 +84,29 @@ public class Constants {
 	public static final String RIGHT_MOTOR_PORT = "D";
 	
 	/**
+	 * The port identification string for the US sensor's motor
+	 */
+	public static final String US_MOTOR_PORT = "C";
+	
+	/**
+	 * The port identification string for the arm's motor
+	 */
+	public static final String ARM_MOTOR_PORT = "B";
+	
+	/**
 	 * The port identification string for the US sensor
 	 */
 	public static final String US_PORT = "S3";
 	
 	/**
-	 * The port identification string for the Color sensor
+	 * The port identification string for the light sensor
 	 */
-	public static final String COLOR_PORT = "S2";
+	public static final String LIGHT_PORT = "S2";
 	
 	/**
-	 * The port identification string for the US sensor's motor
+	 * The port identification string for the color sensor
 	 */
-	public static final String US_MOTOR_PORT = "C";
+	public static final String COLOR_PORT = "S4"; //TODO: make sure this is correct
 	
 	
 /////////////////			MOTOR SPEEDS AND ACCELERATIONS			////////////////////
@@ -93,6 +127,11 @@ public class Constants {
 	public static final int LOCALIZE_BACKUP_SPEED = 275;
 	
 	/**
+	 * The speed of the arm motor, in deg/sec, when acquiring a ball 
+	 */
+	public static final int GETBALL_ARMSPEED = (int)(160/2.35);
+	
+	/**
 	 * The acceleration of the arm motor when acquiring a ball
 	 */
 	public static final int GETBALL_ARMACCELERATION = 3000;
@@ -105,6 +144,13 @@ public class Constants {
 	/**
 	 * The speed of the arm motor when acquiring a ball
 	 */
+	public static final int FIRE_ARMSPEED = 800;
+	
+	/**
+	 * The speed of the arm motor when resetting to its start position after firing a shot
+	 */
+	public static final int ARMRESET_SPEED = 300;
+	
 
 ///////////////							CODE TIMING			////////////////////////////
 	/**
@@ -120,7 +166,7 @@ public class Constants {
 	/**
 	 * The time in between every update in the color measurement of the color sensor, in ms
 	 */
-	public static final int COLOR_PERIOD = 40;
+	public static final int LIGHT_PERIOD = 40;
 	
 	/**
 	 * The time in between every update of the info displayed by the LCD screen
@@ -131,7 +177,7 @@ public class Constants {
 	 * The time that the run-loop sleeps between every iteration, in ms
 	 */
 	public static final int RUNLOOP_PERIOD = 30;
-	public static final double RUNLOOP_FREQ = 1000 / RUNLOOP_PERIOD;
+
 	
 /////////////////			FIELD DIMENSIONS			/////////////////////
 	/**
@@ -166,5 +212,5 @@ public class Constants {
 	/**
 	 * how reliable, (0 < reiablity < 11.0)/1.0, we expect sensor and other data to be
 	 */
-	public static final double RELIABILITY_FACTOR = 0.97;
+	public static final double RELIABILITY_FACTOR = 0.95;
 }

@@ -7,8 +7,8 @@ import lejos.hardware.sensor.SensorModes;
 import lejos.robotics.SampleProvider;
 
 /**
- * a class used to abstract away the details of the color sensor in favor of an API that
- * simplifies the color sensor's usage down to a single getter method: getColor().
+ * a class used to abstract away the details of the light sensor in favor of an API that
+ * simplifies the light sensor's usage down to a single getter method: getLight().
  * @author Stuart Mashaal
  *
  */
@@ -20,7 +20,7 @@ public class LightPoller implements TimerListener{
 	float[] samples;
 		
 	/**
-	 * constructs an instance of ColorPoller
+	 * constructs an instance of LightPoller
 	 */
 	public LightPoller(Port p) {
 		this.port = p;
@@ -37,7 +37,7 @@ public class LightPoller implements TimerListener{
 	
 	/**
 	 * 
-	 * @return the current color value detected by the color sensor
+	 * @return the current light value detected by the color sensor
 	 */
 	public double getLight() {
 		synchronized (this) {

@@ -31,11 +31,13 @@ public class Main2 {
 	private static double lighthalfanglediffone, lighthalfangledifftwo;
 	private static double lightXoffset, lightYoffset, lightThetaOffsetX, lightThetaOffsetY;
 	private static boolean homestretch;
+	private static int counter = 0;
 
 	//resources
 	private static EV3LargeRegulatedMotor leftMotor = new EV3LargeRegulatedMotor(LocalEV3.get().getPort(Constants.LEFT_MOTOR_PORT));
 	private static EV3LargeRegulatedMotor rightMotor = new EV3LargeRegulatedMotor(LocalEV3.get().getPort(Constants.RIGHT_MOTOR_PORT));
 	private static EV3LargeRegulatedMotor sensorMotor = new EV3LargeRegulatedMotor(LocalEV3.get().getPort(Constants.US_MOTOR_PORT));
+	private static EV3LargeRegulatedMotor armMotor = new EV3LargeRegulatedMotor(LocalEV3.get().getPort(Constants.ARM_MOTOR_PORT));
 	
 	//gameplay object instantiations
 	private static Odometer odo = new Odometer(leftMotor, rightMotor);
@@ -44,8 +46,8 @@ public class Main2 {
 	private static USPoller usp = new USPoller(LocalEV3.get().getPort(Constants.US_PORT), sensorMotor);
 	private static Timer usTimer = new Timer(Constants.US_PERIOD, usp);
 	
-	private static LightPoller lp = new LightPoller(LocalEV3.get().getPort(Constants.COLOR_PORT));
-	private static Timer lightTimer = new Timer(Constants.COLOR_PERIOD, lp);
+	private static LightPoller lp = new LightPoller(LocalEV3.get().getPort(Constants.LIGHT_PORT));
+	private static Timer lightTimer = new Timer(Constants.LIGHT_PERIOD, lp);
 	
 	private static LCDinfo lcd = new LCDinfo(odo);
 	private static Timer lcdTimer = new Timer(Constants.LCD_PERIOD, lcd);
@@ -54,13 +56,15 @@ public class Main2 {
 	
 	private static Localizer loc = new Localizer(nav, usp, odo);
 	
+	private static ArmManager arm = new ArmManager(armMotor);
+	
 	//PrintWriter object for debugging
 	private static PrintWriter writer;
 	
 	//main method
 	public static void main(String[] args) throws FileNotFoundException, 
     UnsupportedEncodingException, InterruptedException{
-		writer = new PrintWriter("lightlocal.txt", "UTF-8");
+		writer = new PrintWriter("lightlocal.csv", "UTF-8");
 		
 		//start all timers
 		odoTimer.start();
@@ -75,10 +79,12 @@ public class Main2 {
 		boolean dotheloop = true;
 		////////////			random tester code here			/////////////////
 //		dotheloop = false;
-//		nav.rotateByDeg(720);
 //		
-//		
-//		
+//		//navigation test
+//		nav.forwardBy(Constants.TILE_LENGTH * 5);
+//		//nav.rotateByDeg(720);
+		
+		
 		
 		//the main run-loop
 		runloop:
@@ -99,6 +105,11 @@ public class Main2 {
 				
 				currState = nextState;
 				break;
+				
+			/*
+			 * This state state is for US localization, which is the first action performed by the robot.  The US localization routine
+			 * allows the robot to know its initial position and heading relative to some point and heading (0,0,0).
+			 */
 			case USLOCALIZE:
 				nextState = State.GOTOSTART;
 				
@@ -110,7 +121,7 @@ public class Main2 {
 							
 				
 			/*
-			 * This state is entered perfrom light-localization while away from a corner. The method relies on
+			 * This state is entered to perfrom light-localization while away from a corner. The method relies on
 			 * the robot being in a particular zone relative to a known intersection of ground lines on the field. 
 			 */
 			case LIGHTLOCALIZE:
@@ -130,6 +141,7 @@ public class Main2 {
 					}
 					
 					//now that you're looking at a line, record the angle
+					Sound.beep();
 					lightlocalangles[i] = odo.getThetaDeg() 
 							- Constants.ROTATE_SPEED * Constants.RUNLOOP_PERIOD / 1000;//angle travelled while waiting for odo.getTheta()			
 					//wait to not be looking at a line anymore
@@ -168,16 +180,29 @@ public class Main2 {
 				//update odometer with correction
 				odo.setPositionDeg(new double[] {odo.getX() - lightXoffset, odo.getY() - lightYoffset, odo.getThetaDeg() + 0.5 * (lightThetaOffsetX + lightThetaOffsetY)});
 				
-				break runloop;
+				writer.write("diffone: " + lighthalfanglediffone + "\ndifftwo: " + lighthalfangledifftwo);
+				writer.write("\naverageone: " + lightaverageangleone + "\naveragetwo: " + lightaverageangletwo);
+				writer.flush();
+				
+				currState = State.GOTOSTART;
+				break;
 				
 			/*
 			 * This state is for setting the start coordinates.
 			 */
 			case GOTOSTART:
-				nextState = State.LIGHTLOCALIZE;
 				
-				xdest = (Constants.TILE_LENGTH * 2) /*- Constants.TILE_LENGTH * 0.125*/;
-				ydest = (Constants.TILE_LENGTH * 2) /*- Constants.TILE_LENGTH * 0.125*/;
+				if (counter == 0) {
+					counter++;
+					xdest = (Constants.TILE_LENGTH * 5);
+					ydest = (Constants.TILE_LENGTH * 5);
+					nextState = State.LIGHTLOCALIZE;
+				} else {
+					counter++;
+					xdest = 0;
+					ydest = 0;
+					nextState = State.DEFEND;
+				}
 				
 				currState = State.TRAVELLING;	
 				break;
@@ -321,20 +346,21 @@ public class Main2 {
 					//then go some more so you can clear it when you turn back. turn back
 					nav.forwardBy(Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR);
 					nav.rotateByDeg(90);
-					
-					//now again go until you've passed it and then a little extra and then aim your sensor forward again
-					nav.goForward_imret();
-					while (usp.getFilteredUSdistance() > (Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR) * (2 - Constants.RELIABILITY_FACTOR)) {
-						try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
-						catch(InterruptedException e){e.printStackTrace();}		
-					}
-					while (usp.getFilteredUSdistance() < (Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR) * (2 -Constants.RELIABILITY_FACTOR)) {
-						//don't check too often
-						try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
-						catch(InterruptedException e){e.printStackTrace();}	
-					}
-					nav.stop();
-					nav.forwardBy(Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR);
+//					
+//					//now again go until you've passed it and then a little extra and then aim your sensor forward again
+//					nav.goForward_imret();
+//					while (usp.getFilteredUSdistance() > (Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR) * (2 - Constants.RELIABILITY_FACTOR)) {
+//						try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
+//						catch(InterruptedException e){e.printStackTrace();}		
+//					}
+//					while (usp.getFilteredUSdistance() < (Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR) * (2 -Constants.RELIABILITY_FACTOR)) {
+//						//don't check too often
+//						try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
+//						catch(InterruptedException e){e.printStackTrace();}	
+//					}
+//					nav.stop();
+//					nav.forwardBy(Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR);
+					nav.forwardBy(Constants.TILE_LENGTH * 1.5);
 					usp.rotateByDeg(-90);
 					
 					

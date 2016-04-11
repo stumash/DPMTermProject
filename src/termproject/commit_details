@@ -1,15 +1,10 @@
-Odometry Correction is likely not needed and will not be implemented. The only form of odometry correction that the robot will use
-is to do re-localization using the light localization technique at various groundline intersections as it travels distances too large that
-would usually cause a fatal buildup of cumulative error for the odometer.
-On this note, however, the light localization routine is complete and tested - it is functional. It is implemented in the main class/method as 
-the behaviour state "LIGHT_LOCALIZATION".
+This is going to be more or less the final commit. Maybe there'll be another. ArmManager complete, light localization state complete (used for odometry correction),
+and even ball color detection has been implemented.  It may not all work, and for future reference the idea of a robot that navigates using an extremely error prone
+coordinate system is definitely not the correct way of programming autonomous robots, but the final version of this robot can complete the task given near-perfect environmental factors.
 
-what's left to do: ball-grabbing strategy is, as of now, totally undetermined - we need one.  Thats the main task left to.
-So far the robot can tell where it is and get around pretty well. with some periodic light-localizations to correct its accumulated odometry error
-over large distance, it can basically get anywhere.  Obstacle avoidance may need some tweaks but basically done. 
+The only things left to do now are improve the robot. The main problems are due to the percent error in all of the robots measurements that accumulate as the robot does...anything.
 
-assuming obstacle avoidance and the frequency of light localization are handled soon , the real task ahead is grabbing a ball, if e can do that, this project is 
-actually gonna be a success in time.
-
-so just grabbing a ball for next commit, hopefully.
+Another thing to note: the idea of having all the game logic in the main method as probably not a good one.  That design decision was forced pretty early on and in retrospect
+code could have been made easier to read (it's all very legible just the main method is rather large).  The main downside to this approach was not so much that it made the code harder
+to write or less likely to be stabe and function, but that you had to do a lot of scrolling around to follow the robot's logic.  More "modular" design would have been useful here.
 
