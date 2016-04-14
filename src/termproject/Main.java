@@ -3,6 +3,8 @@ package termproject;
 import java.io.FileNotFoundException;
 import java.io.PrintWriter;
 import java.io.UnsupportedEncodingException;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 import lejos.hardware.Button;
 import lejos.hardware.Sound;
@@ -30,8 +32,10 @@ public class Main {
 	private static double lightaverageangleone, lightaverageangletwo;
 	private static double lighthalfanglediffone, lighthalfangledifftwo;
 	private static double lightXoffset, lightYoffset, lightThetaOffsetX, lightThetaOffsetY;
-	private static boolean homestretch;
-	private static int counter = 0;
+	private static boolean homestretch, offense, ballsOnRight;
+	private static ArrayList<MyPoint> dests;
+	private static int destcounter = 0;
+	private static int ballcounter = 0;
 
 	//resources
 	private static EV3LargeRegulatedMotor leftMotor = new EV3LargeRegulatedMotor(LocalEV3.get().getPort(Constants.LEFT_MOTOR_PORT));
@@ -66,7 +70,6 @@ public class Main {
 	//main method
 	public static void main(String[] args) throws FileNotFoundException, 
     UnsupportedEncodingException, InterruptedException{
-		writer = new PrintWriter("lightlocal.csv", "UTF-8");
 		
 		//start all timers
 		odoTimer.start();
@@ -78,15 +81,14 @@ public class Main {
 		try{ Thread.sleep(1500); }
 		catch(InterruptedException e){e.printStackTrace();}
 
-		boolean dotheloop = true;
-		////////////			random tester code here			/////////////////
+		boolean dotheloop = true;		
+///////////////////////////			random tester code here			/////////////////
 //		dotheloop = false;
-//		
-//		//navigation test
-//		nav.forwardBy(Constants.TILE_LENGTH * 5);
-//		//nav.rotateByDeg(720);
-		
-		
+//		nav.rotateByDeg(360 * 3);
+//		try{ Thread.sleep(5000); }
+//		catch(InterruptedException e){e.printStackTrace();}
+//		nav.rotateByDeg(-360 * 3);
+////////////////////////// 		END OF TESTER CODE			////////////////////////		
 		
 		//the main run-loop
 		runloop:
@@ -98,15 +100,63 @@ public class Main {
 			
 			stateswitch:
 			switch (currState) {
+			
+			/*
+			 * The general setup state
+			 */
 			case INIT:
 				nextState = State.USLOCALIZE;
 				
-				//TODO create the value-setting logic for this using wifi classes
+				HashMap<String, Integer> setupData = WifiDPM.getWifiData();
+				if (setupData == null) {
+					System.exit(0);
+				}
+				if (setupData.get("OTN") == Constants.TEAM_NUMBER) {
+					offense = true;
+					loc.setCorner(StartCorner.lookupCorner(setupData.get("OSC")));
+				} else {
+					offense = false;
+					loc.setCorner(StartCorner.lookupCorner(setupData.get("DSC")));
+				}
+				Constants.forward_line = (setupData.get("d2") - 1) * Constants.TILE_LENGTH;
+				Constants.defender_line = (11 - setupData.get("d1")) * Constants.TILE_LENGTH;
+				Constants.ll_x = setupData.get("ll-x") * Constants.TILE_LENGTH;
+				Constants.ll_y = setupData.get("ll-y") * Constants.TILE_LENGTH;
+				Constants.ur_x = setupData.get("ur-x") * Constants.TILE_LENGTH;
+				Constants.ur_y = setupData.get("ur-y") * Constants.TILE_LENGTH;
+				Constants.goal_width = setupData.get("w1");
+			
+				if (Math.abs(Constants.ur_x - Constants.TILE_LENGTH*11) < Math.abs(Constants.ll_x - Constants.TILE_LENGTH*(-1))) {
+					/* if the upper-right corner of the ball-tray is closer to the right wall than the lower-left corner is
+					 * to the left wall then the ball-tray is on the right side of the field and the tray's left hand side
+					 * should be approached from the left for ball collection
+					 */
+					Constants.balldest_x = Constants.ll_x - Constants.TILE_LENGTH;
+					Constants.balldest_y = Constants.ll_y - Constants.TILE_LENGTH;
+					ballsOnRight = true;
+				} else {
+					Constants.balldest_x = Constants.ur_x + Constants.TILE_LENGTH;
+					Constants.balldest_y = Constants.ur_y + Constants.TILE_LENGTH;
+					ballsOnRight = false;
+				}
 				
-				loc.setCorner(1);
+				if (offense) {
+					Constants.startx = Constants.TILE_LENGTH * 5; //middle of playing field
+					Constants.starty = Constants.forward_line - Constants.TILE_LENGTH;
+				} else {
+					Constants.startx = Constants.TILE_LENGTH * 5; //middle of playing field
+					Constants.starty = Constants.defender_line + Constants.TILE_LENGTH;
+				}
+
 				
+				Constants.firedest_x = (Constants.TILE_LENGTH * 5) + (Constants.goal_width/2);
+				Constants.firedest_y = Constants.forward_line - (Constants.TILE_LENGTH / 2);
+				Constants.firedest_th = -(Constants.FIRE_ERROR_OFFSET_ANGLE + 90);
+				
+				try { Thread.sleep(1500); }
+				catch (InterruptedException e) { e.printStackTrace(); }
 				currState = nextState;
-				break;
+				break stateswitch;
 				
 			/*
 			 * This state state is for US localization, which is the first action performed by the robot.  The US localization routine
@@ -115,26 +165,40 @@ public class Main {
 			case USLOCALIZE:
 				nextState = State.GOTOSTART;
 				
-				//perform localization
 				loc.localize();
+				Sound.beep();
 				
 				currState = nextState;
-				break;
+				break stateswitch;
 							
 				
 			/*
-			 * This state is entered to perfrom light-localization while away from a corner. The method relies on
+			 * This state is entered to perform light-localization while away from a corner. The method relies on
 			 * the robot being in a particular zone relative to a known intersection of ground lines on the field. 
 			 */
 			case LIGHTLOCALIZE:
 				
-				//face forward
+				for (int loccount = 0; loccount < 2; loccount++) {//do this whole thing twice
+					
+				//attempt to correct position before continuing, if necessary
+				if (!nav.isWithinDistOfNearestIntersection(2)) {
+					double[] nearest = nav.nearestIntersectionCoords();
+					nav.rotateToXdest(nearest[0]);
+					nav.forwardBy(Math.abs(nearest[0] - odo.getX()));
+					nav.rotateToYdest(nearest[1]);
+					nav.forwardBy(Math.abs(nearest[1] - odo.getY()));
+				}
+					
+				//face the robot currently thinks is forward
 				nav.rotateToDeg(0);
 				
 				//begin rotating full circle
 				nav.rotateByDeg_imret(360);			
 				for (int i = 0; i < 4; i++) {
-					
+					if (i == 0) {
+						try { Thread.sleep(1000); }
+						catch (InterruptedException e) { e.printStackTrace(); }
+					}
 					//wait to be looking at a line
 					while (lp.getLight() > Constants.LIGHT_THRESHOLD) {
 						//don't check too often
@@ -182,43 +246,140 @@ public class Main {
 				//update odometer with correction
 				odo.setPositionDeg(new double[] {odo.getX() - lightXoffset, odo.getY() - lightYoffset, odo.getThetaDeg() + 0.5 * (lightThetaOffsetX + lightThetaOffsetY)});
 				
-				writer.write("diffone: " + lighthalfanglediffone + "\ndifftwo: " + lighthalfangledifftwo);
-				writer.write("\naverageone: " + lightaverageangleone + "\naveragetwo: " + lightaverageangletwo);
-				writer.flush();
+				}//end of for-loop
 				
-				currState = State.GOTOSTART;
+				nav.rotateToDeg(0);
+				currState = nextState;
+				break stateswitch;
+				
+				
+			/*
+			 * This state is for setting the start coordinates and getting to them in steps.
+			 */
+			case GOTOSTART:	
+				if (dests == null) {
+					nextState = currState;
+					dests = makeDestlistFromDest(Constants.startx, Constants.starty);
+				}
+				if (dests != null) {
+					if (destcounter < dests.size()) {
+						xdest = dests.get(destcounter).getX();
+						ydest = dests.get(destcounter).getY();
+						currState = State.TRAVELLING;
+						destcounter++;
+					} else {
+						destcounter = 0;
+						if (offense) {
+							nextState = State.GOTOBALLS;
+						} else {
+							nextState = State.DEFEND;
+						}
+						dests = null;
+					}
+				}
+					
 				break;
 				
 			/*
-			 * This state is for setting the start coordinates.
+			 * This state includes all the behaviour of the robot while defends the net, remaining in the
+			 * defensive zone
 			 */
-			case GOTOSTART:
+			case DEFEND:
+				//no defense strategy, just sit there
+				break runloop;
 				
-				if (counter == 0) {
-					counter++;
-					xdest = (Constants.TILE_LENGTH * 5);
-					ydest = (Constants.TILE_LENGTH * 5);
-					nextState = State.LIGHTLOCALIZE;
-				} else {
-					counter++;
-					xdest = 0;
-					ydest = 0;
-					nextState = State.DEFEND;
+				
+			/*
+			 * This state includes all the behaviour of the in determining how to get to a ball
+			 */
+			case GOTOBALLS:
+				if (dests == null) {
+					nextState = currState;
+					dests = makeDestlistFromDest(Constants.balldest_x, Constants.balldest_x);
+				}
+				if (dests != null) {
+					if (destcounter < dests.size()) {
+						xdest = dests.get(destcounter).getX();
+						ydest = dests.get(destcounter).getY();
+						currState = State.TRAVELLING;
+						destcounter++;
+					} else {
+						destcounter = 0;
+						nextState = State.PICKUPBALL;
+						dests = null;
+					}
 				}
 				
-				currState = State.TRAVELLING;	
-				break;
-			case DEFEND:
-				break runloop;
-			case GOTOBALLS:
-				break runloop;
+				currState = nextState;
+				break stateswitch;
+				
+			/*
+			 * this state includes all the robot's "detect and pick up a ball" behaviour
+			 */
 			case PICKUPBALL:
+				nextState = State.GOTONET;
+				
+				//allign with balls
+				if (ballsOnRight) {
+					nav.rotateToDeg_imret(90);
+					nav.forwardBy(Constants.TILE_LENGTH - Constants.WHEELCENTER_TO_LIGHTSENSOR);
+					nav.rotateByDeg(-90);
+				} else {
+					nav.rotateToDeg_imret(-90);
+					nav.forwardBy(Constants.TILE_LENGTH - Constants.WHEELCENTER_TO_LIGHTSENSOR);
+					nav.rotateByDeg(90);
+				}
+				
+				//go as far as the current one
+				nav.forwardBy(Constants.INCH * 1.5);
+				for (int i = 0; i < ballcounter; i++) {
+					nav.forwardBy(Constants.INCH * 3);
+				}
+				ballcounter++; //next time get the next ball
+				
+				//pick it up
+				arm.collectBall();
+				
+				currState = nextState;
 				break;
+				
+			/*
+			 * This state is for getting to the net
+			 */
 			case GOTONET:
+				
+				if (dests == null) {
+					nextState = currState;
+					dests = makeDestlistFromDest(Constants.firedest_x, Constants.firedest_y);
+				}
+				if (dests != null) {
+					if (destcounter < dests.size()) {
+						xdest = dests.get(destcounter).getX();
+						ydest = dests.get(destcounter).getY();
+						currState = State.TRAVELLING;
+						destcounter++;
+					} else {
+						destcounter = 0;
+						nextState = State.PREPARESHOT;
+						dests = null;
+					}
+				}
+				
+				currState = nextState;
 				break;
 			case PREPARESHOT:
+				nextState = State.FIRE;
+				
+				nav.rotateToDeg(Constants.firedest_th);
+				
+				currState = nextState;
 				break;	
 			case FIRE:
+				nextState = State.GOTOBALLS;
+				
+				arm.fire();
+				
+				currState = nextState;
 				break;
 				
 			/*
@@ -243,14 +404,13 @@ public class Main {
 						//don't check too often 
 						try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
 						catch(InterruptedException e){e.printStackTrace();}
-						
 						//if you're approaching an obstacle
-						if ((filteredusD = usp.getFilteredUSdistance()) < Constants.EMERGENCY_DISTANCE * Constants.RELIABILITY_FACTOR) { 
+						if ((filteredusD = usp.getFilteredUSdistance()) < Constants.EMERGENCY_DISTANCE * Constants.RELIABILITY_FACTOR) {
 							if (filteredusD < nav.distToWall() * Constants.RELIABILITY_FACTOR) {
 								currState = State.OBSTACLEAVOIDANCE; //go to obstacleavoidance state and stop
 								nav.stop();							 //going towards (xdest,ydest)
 								break stateswitch; 
-							}
+							}	
 						}
 					}
 				
@@ -283,8 +443,8 @@ public class Main {
 					//you finished travelling. next time you start travelling again you won't be on the homestretch
 					homestretch = false;
 					//you've gotten to where you're going. now, do the next state whatever that is
-					currState = nextState;					
-				}		
+					currState = State.LIGHTLOCALIZE;					
+				}	
 				break;
 
 			/*
@@ -311,7 +471,7 @@ public class Main {
 					nav.stop();
 
 					//then go some more so you can clear it when you turn back.  turn back
-					nav.forwardBy(Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR);
+					nav.forwardBy(Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR + 5);
 					nav.rotateByDeg(-90);
 					
 					//now again go until you've passed it and then a little extra and then aim your sensor forward again
@@ -346,23 +506,22 @@ public class Main {
 					nav.stop();
 					
 					//then go some more so you can clear it when you turn back. turn back
-					nav.forwardBy(Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR);
+					nav.forwardBy(Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR + 5);
 					nav.rotateByDeg(90);
-//					
-//					//now again go until you've passed it and then a little extra and then aim your sensor forward again
-//					nav.goForward_imret();
-//					while (usp.getFilteredUSdistance() > (Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR) * (2 - Constants.RELIABILITY_FACTOR)) {
-//						try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
-//						catch(InterruptedException e){e.printStackTrace();}		
-//					}
-//					while (usp.getFilteredUSdistance() < (Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR) * (2 -Constants.RELIABILITY_FACTOR)) {
-//						//don't check too often
-//						try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
-//						catch(InterruptedException e){e.printStackTrace();}	
-//					}
-//					nav.stop();
-//					nav.forwardBy(Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR);
-					nav.forwardBy(Constants.TILE_LENGTH * 1.5);
+					
+					//now again go until you've passed it and then a little extra and then aim your sensor forward again
+					nav.goForward_imret();
+					while (usp.getFilteredUSdistance() > (Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR) * (2 - Constants.RELIABILITY_FACTOR)) {
+						try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
+						catch(InterruptedException e){e.printStackTrace();}		
+					}
+					while (usp.getFilteredUSdistance() < (Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR) * (2 -Constants.RELIABILITY_FACTOR)) {
+						//don't check too often
+						try{ Thread.sleep(Constants.RUNLOOP_PERIOD); }
+						catch(InterruptedException e){e.printStackTrace();}	
+					}
+					nav.stop();
+					nav.forwardBy(Constants.WHEELS_TO_BACK + Constants.WHEELS_TO_USSENSOR);
 					usp.rotateByDeg(-90);
 					
 					
@@ -386,7 +545,7 @@ public class Main {
 	private static boolean shouldGoAroundObstacleByTurningRight() {
 		if (!homestretch) {
 			//go around towards your destination point
-			if (((odo.getThetaDeg() % 360) + 360) % 360 < Math.PI * 3 / 4) {//if you're going rightwards
+			if (((odo.getThetaDeg() % 360) + 360) % 360 < 135) {//if you're going rightwards
 				return ydest < odo.getY();
 			} else {
 				return ydest > odo.getY();
@@ -410,6 +569,34 @@ public class Main {
 		double result = deg % 360;
 		if (result < 0) {
 			result += 360;
+		}
+		return result;
+	}
+	
+	public static ArrayList<MyPoint> makeDestlistFromDest(double x, double y) {
+		ArrayList<MyPoint> result = new ArrayList<MyPoint>();
+		result.add(0, new MyPoint(x, y));
+		double x0 = 0; double y0 = 0;
+		if (Math.abs(x - odo.getX()) > Constants.TILE_LENGTH * 5.1 || Math.abs(y - odo.getY()) > Constants.TILE_LENGTH * 5.1) {
+			if(Math.abs(x - odo.getX()) > Constants.TILE_LENGTH * 5.1) {
+				if (x > odo.getX()) {
+					x0 = odo.getX() + Constants.TILE_LENGTH * 5;
+				} else {
+					x0 = odo.getX() - Constants.TILE_LENGTH * 5;
+				}
+			} else {
+				x0 = x;
+			}
+			if(Math.abs(y - odo.getY()) > Constants.TILE_LENGTH * 5.1) {
+				if (y > odo.getY()) {
+					y0 = odo.getY() + Constants.TILE_LENGTH * 5;
+				} else {
+					y0 = odo.getY() - Constants.TILE_LENGTH * 5;
+				}
+			} else {
+				y0 = y;
+			}
+			result.add(0,new MyPoint(x0 + odo.getX(), y0 + odo.getY()));
 		}
 		return result;
 	}

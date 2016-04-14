@@ -20,7 +20,7 @@ public class ArmManager {
 		motor.rotate(Constants.GETBALL_TAPANGLE);
 		
 		//push the ball into the holder and bend the "elbow" so that the arm is ready to fire
-		motor.setSpeed(Constants.FIRE_ARMSPEED);
+		motor.setSpeed(Constants.GETBALL_PUSHSPEED);
 		motor.rotate(Constants.GETBALL_HOLDERPUSHANGLE);
 		
 		//prepare for slap
@@ -42,7 +42,7 @@ public class ArmManager {
 	
 	private void reset() {
 		motor.setSpeed(Constants.ARMRESET_SPEED);
-		motor.setAcceleration(Constants.GETBALL_ARMACCELERATION);
+		motor.setAcceleration(Constants.FIRE_ARMACCELERATION);
 		
 		//reset the arm to collect another ball by rotate backwards by the sum of all angle rotated so far
 		motor.rotate(-(Constants.GETBALL_TAPANGLE + Constants.GETBALL_HOLDERPUSHANGLE + 

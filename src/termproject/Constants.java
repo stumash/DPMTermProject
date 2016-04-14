@@ -7,27 +7,30 @@ package termproject;
  */
 public class Constants {
 	//values given to robot through wifi at beginning of round
-	public static int starting_corner;
-	public static int role;
 	public static int goal_width;
-	public static int defender_line;
-	public static int forward_line;
-	public static int ll_x;
-	public static int ll_y;
-	public static int ur_x;
-	public static int ur_y;
+	public static double defender_line; //distance from back wall of playing field to defense-zone front line
+	public static double forward_line; //distance from front wall of playing field to offense-zone front line
+	public static double ll_x; //lower-left and upper-right xy coordinate values for ball holder
+	public static double ll_y;
+	public static double ur_x;
+	public static double ur_y;
+	public static int ballQty; //number of balls on playing field
+	public static double balldest_x; //x-coord for where to light localize before getting balls
+	public static double balldest_y; //y-coord for where to light localize before getting balls
+	public static double startx, starty;
+	public static double firedest_x, firedest_y, firedest_th;
 	
 	
 /////////////////			ROBOT PHYSICAL DIMENSIONS         /////////////////////
 	/**
 	 * The distance between the two wheels of the robot
 	 */
-	public static final double WB = 16.55;	
+	public static final double WB = 16.7;	
 	
 	/**
 	 * The radius of the robot's wheels
 	 */
-	public static final double WR = 2.035 ;
+	public static final double WR = 2.028;
 	
 	/**
 	 * The distance, in cm, from the back-most point of the robot to the wheels
@@ -64,12 +67,17 @@ public class Constants {
 	 * The angle the arm must rotate to wind up backwards to be in position to suddenly rotate very fast forward
 	 * to slap the ball into the goal
 	 */
-	public static final int FIRE_WINDUPANLGE = -90;
+	public static final int FIRE_WINDUPANLGE = -150;
 	
 	/**
 	 * The angle the arm must rotate forward at high speed to fire the ball at the net
 	 */
-	public static final int FIRE_SLAPSHOTANGLE = 110;
+	public static final int FIRE_SLAPSHOTANGLE = 175;
+	
+	/**
+	 * The angle, clockwise, that the ball firing procedure aims off the expected perfect 90 degrees
+	 */
+	public static final double FIRE_ERROR_OFFSET_ANGLE = 10;
 	
 	
 ////////////////////////////// 			ROBOT PORTS				///////////////////////////
@@ -132,6 +140,11 @@ public class Constants {
 	public static final int GETBALL_ARMSPEED = (int)(160/2.35);
 	
 	/**
+	 * The speed at which the ball-arm nudges the ball into the holder after having knocked it out
+	 */
+	public static final int GETBALL_PUSHSPEED = 250;
+	
+	/**
 	 * The acceleration of the arm motor when acquiring a ball
 	 */
 	public static final int GETBALL_ARMACCELERATION = 3000;
@@ -139,17 +152,17 @@ public class Constants {
 	/**
 	 * The acceleration of the arm motor when firing a ball
 	 */
-	public static final int FIRE_ARMACCELERATION = 9000;
+	public static final int FIRE_ARMACCELERATION = 11000;
 	
 	/**
 	 * The speed of the arm motor when acquiring a ball
 	 */
-	public static final int FIRE_ARMSPEED = 800;
+	public static final int FIRE_ARMSPEED = 1100;
 	
 	/**
 	 * The speed of the arm motor when resetting to its start position after firing a shot
 	 */
-	public static final int ARMRESET_SPEED = 300;
+	public static final int ARMRESET_SPEED = 600;
 	
 
 ///////////////							CODE TIMING			////////////////////////////
@@ -213,4 +226,19 @@ public class Constants {
 	 * how reliable, (0 < reiablity < 11.0)/1.0, we expect sensor and other data to be
 	 */
 	public static final double RELIABILITY_FACTOR = 0.95;
+	
+	/**
+	 * our team's team number for DPM Winter 2016
+	 */
+	public static final int TEAM_NUMBER = 10;
+	
+	/**
+	 * The ip adress of the server that the robot connects to get setup values
+	 */
+	public static final String SERVER_IP = "192.168.10.200";
+	
+	/**
+	 * The number of centimeters in an inch
+	 */
+	public static final double INCH = 2.54;
 }

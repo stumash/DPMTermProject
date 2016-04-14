@@ -240,15 +240,50 @@ public class Navigator {
 	public double distToWall() {
 		double retval;
 		double th = ((odo.getThetaDeg() % 360) + 360) % 360; //th = current heading in range [0, 360]
-		if (th > Math.PI * 7 / 4 || th <= Math.PI / 4 ) { //if facing upwards
+		if (th > 315 || th <= 45 ) { //if facing upwards
 			retval = Constants.TILE_LENGTH * (Constants.PF_SIDE_LENGTH - 1) - odo.getY(); //return distance to top wall
-		} else if (th <= Math.PI * 3 / 4) {//if facing to the right
+		} else if (th <= 135) {//if facing to the right
 			retval = Constants.TILE_LENGTH * (Constants.PF_SIDE_LENGTH - 1) - odo.getX(); //return distance to right wall
-		} else if (th <= Math.PI * 5 / 4) {//if facing downward
+		} else if (th <= 225) {//if facing downward
 			retval = Constants.TILE_LENGTH + odo.getY(); //return distance to bottom wall
 		} else {//else facing left
 			retval =  Constants.TILE_LENGTH + odo.getX(); //return distance to left wall
 		}
 		return retval;
+	}
+	
+	/**
+	 * determines the coordinates of the nearest groundline intersection usable for light localization
+	 * @return an array of two values containing the x and y coordinate of the groundline intersection
+	 * nearest the x,y coordinate provided as argument
+	 */
+	public double[] nearestIntersectionCoords() {
+		double x = odo.getX();
+		double y = odo.getY();
+		double[] result = new double[2];
+		double rem = 0;
+		if ((rem = x % Constants.TILE_LENGTH) < Constants.TILE_LENGTH / 2) { 
+			//the nearest intersection is at lower x coord
+			result[0] = odo.getX() - rem;
+		} else {
+			result[0] = odo.getX() + (Constants.TILE_LENGTH - rem);
+		}
+		if((rem = y % Constants.TILE_LENGTH) < Constants.TILE_LENGTH / 2) {
+			//the nearest intersection is at lower y coord
+			result[1] = odo.getY() - rem;
+		} else {
+			result[1] = odo.getY() + (Constants.TILE_LENGTH - rem);
+		}
+		return result;
+	}
+	
+	/**
+	 * determines if the robot is within the specified distance to the nearest groundline intersection
+	 * @param dist the distance, in cm
+	 * @return true if the robot is within the specified distance the nearest groundline intersection, else false
+	 */
+	public boolean isWithinDistOfNearestIntersection(double dist) {
+		double[] nearest = nearestIntersectionCoords();
+		return Math.sqrt(Math.pow(nearest[0] - odo.getX(), 2) + Math.pow(nearest[1] - odo.getY(), 2)) < dist;
 	}
 }
