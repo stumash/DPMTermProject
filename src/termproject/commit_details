@@ -1,10 +1,6 @@
-This is going to be more or less the final commit. Maybe there'll be another. ArmManager complete, light localization state complete (used for odometry correction),
-and even ball color detection has been implemented.  It may not all work, and for future reference the idea of a robot that navigates using an extremely error prone
-coordinate system is definitely not the correct way of programming autonomous robots, but the final version of this robot can complete the task given near-perfect environmental factors.
-
-The only things left to do now are improve the robot. The main problems are due to the percent error in all of the robots measurements that accumulate as the robot does...anything.
-
-Another thing to note: the idea of having all the game logic in the main method as probably not a good one.  That design decision was forced pretty early on and in retrospect
-code could have been made easier to read (it's all very legible just the main method is rather large).  The main downside to this approach was not so much that it made the code harder
-to write or less likely to be stabe and function, but that you had to do a lot of scrolling around to follow the robot's logic.  More "modular" design would have been useful here.
-
+The final commit: wificlasses and color detection class added.
+the main source of error of the robot is that it does not have accurate travelling over long distances.
+likely best fixes would be improved odometry correction methods. the light localization method currently in place
+for odometry correction works, but it relies on the robot being able to reliably reach the groundline intersection
+around which to light-localize. this is a task that the robot has generally low chances of completing due to high
+error margins in its directional accuracy.
